@@ -1,5 +1,6 @@
 import GameBoard from "./GameBoard";
 import { useState, useEffect } from "react";
+
 import { PosType, SnakeType, BoardStateType, Direction,SnakeActionType } from "./gameTypes";
 import { Button } from "@/components/ui/button";
 // Import the API client
@@ -253,6 +254,8 @@ export default function Game() {
       
       var snake1PromptFormatted:string = formatPrompt(snake1Prompt,boardState);
       var snake2PromptFormatted:string = formatPrompt(snake2Prompt,boardState);
+      console.log("snake1PromptFormatted:",snake1PromptFormatted)
+      console.log("snake2PromptFormatted:",snake2PromptFormatted)
 
       const response = await fetch('/api/llm', {
           method: 'POST',
