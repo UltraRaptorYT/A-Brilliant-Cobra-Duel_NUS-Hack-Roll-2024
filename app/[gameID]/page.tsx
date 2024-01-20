@@ -358,7 +358,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
       </div>
 
       {gameStart ? (
-        <Game round_id={roundID} game_id={gameID} />
+        <Game round_id={roundID} game_id={gameID} gameState={gameStart} />
       ) : (
         <div className="flex flex-col gap-4 w-full">
           <Accordion

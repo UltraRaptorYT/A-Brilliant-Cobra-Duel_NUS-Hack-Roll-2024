@@ -1,12 +1,23 @@
 import GameBoard from "./GameBoard";
 import { useState, useEffect } from "react";
 
-import { PosType, SnakeType, BoardStateType, Direction,SnakeActionType } from "./gameTypes";
+import {
+  PosType,
+  SnakeType,
+  BoardStateType,
+  Direction,
+  SnakeActionType,
+} from "./gameTypes";
 import { Button } from "@/components/ui/button";
 // Import the API client
 // import { POSTSnake1, POSTSnake2 } from "@/app/api/llm/route"
 
-import {toEmoji_board,toChars_board,toBoard_state_str,formatPrompt} from "./promptFormatting"
+import {
+  toEmoji_board,
+  toChars_board,
+  toBoard_state_str,
+  formatPrompt,
+} from "./promptFormatting";
 
 const initBoardState: BoardStateType = {
   turn: 0,
@@ -49,8 +60,7 @@ and this is the board state in JSON, positions are in (x, y) format, the game bo
 
 The snake dir parameter is the first letter of the previous chosen direction of the snake, if you chose an opposite direction you will die as you will collide with your own body.
 You have to shortly reason your next move in 1-3 lines and then always add one of the following emojis: ⬆️, ⬇️, ⬅️, ➡️ (for <up>, <down>, <left> and <right>) to chose the direction of your next move.
-Make sure to always add a space after the emoji and only use one emoji in your response which will be your final decision for the turn.`
-
+Make sure to always add a space after the emoji and only use one emoji in your response which will be your final decision for the turn.`;
 
 const snake2Prompt: string = `You are an expert gamer agent playing the 1vs1 snake game in a grid board. You can move up, down, left or right. 
 You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.""",
@@ -71,17 +81,24 @@ Makt the following Chain of Thought in few words:
 1. Locate yourself and your head in the chars map (the <B> char) and the (x, y) coordinates from the board state (the element 0 of the body list in snake2, the body parts are ordered from head to tail)
 2. Locate the closest food
 3. Chose the direction to move on cell closer to the food, check if you will die/lose there and if so chose another direction
-4. Finally output the emoji for the direction you chose`
+4. Finally output the emoji for the direction you chose`;
 
-export default function Game({game_id,round_id}: {game_id:string,round_id:number}) {
+export default function Game({
+  game_id,
+  round_id,
+  gameState,
+}: {
+  game_id: string;
+  round_id: number;
+  gameState: boolean;
+}) {
   const size = 15;
   const MAX_TURN = 100;
-  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [isPlaying, setIsPlaying] = useState<boolean>(gameState);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [board, setBoard] = useState<number[][]>([]);
   const [boardState, setBoardState] = useState<BoardStateType>(initBoardState);
   const [turn, setTurn] = useState<number>(0);
-
 
   function placeFood(boardState: BoardStateType): PosType | undefined {
     let newFoodPos: PosType;
@@ -139,7 +156,7 @@ export default function Game({game_id,round_id}: {game_id:string,round_id:number
         head = [head[0], head[1] + 1];
         break;
       case "L":
-        head = [head[0] - 1, head[1]];  
+        head = [head[0] - 1, head[1]];
         break;
       case "R":
         head = [head[0] + 1, head[1]];
@@ -169,7 +186,6 @@ export default function Game({game_id,round_id}: {game_id:string,round_id:number
   // useEffect(() => {
   //   alert("GAME OVER");
   // }, [gameOver]);
-
 
   useEffect(() => {
     if (isPlaying) {
@@ -246,35 +262,56 @@ export default function Game({game_id,round_id}: {game_id:string,round_id:number
         }
       }
 
-    console.log(boardState)
+      console.log(boardState);
 
-    const MakeAction = async (snake1Prompt:string,snake2Prompt:string,boardState:BoardStateType,turn:number,game_id:string,round_id:number,gameOver:boolean) => {
-      if (gameOver || boardState.turn >= MAX_TURN) {
-        return setIsPlaying(false)
-      }
-      var snake1PromptFormatted:string = formatPrompt(snake1Prompt,boardState);
-      var snake2PromptFormatted:string = formatPrompt(snake2Prompt,boardState);
+      const MakeAction = async (
+        snake1Prompt: string,
+        snake2Prompt: string,
+        boardState: BoardStateType,
+        turn: number,
+        game_id: string,
+        round_id: number,
+        gameOver: boolean
+      ) => {
+        if (gameOver || boardState.turn >= MAX_TURN) {
+          return setIsPlaying(false);
+        }
+        var snake1PromptFormatted: string = formatPrompt(
+          snake1Prompt,
+          boardState
+        );
+        var snake2PromptFormatted: string = formatPrompt(
+          snake2Prompt,
+          boardState
+        );
 
-      if (snake1PromptFormatted === "" || snake2PromptFormatted === "") {
-        return setIsPlaying(false)
-      }
+        if (snake1PromptFormatted === "" || snake2PromptFormatted === "") {
+          return setIsPlaying(false);
+        }
 
-      console.log("snake1PromptFormatted:",snake1PromptFormatted)
-      console.log("snake2PromptFormatted:",snake2PromptFormatted)
+        console.log("snake1PromptFormatted:", snake1PromptFormatted);
+        console.log("snake2PromptFormatted:", snake2PromptFormatted);
 
-      const response = await fetch('/api/llm', {
-          method: 'POST',
+        const response = await fetch("/api/llm", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
           },
-  
-          body: JSON.stringify({ snake1Prompt: snake1PromptFormatted, snake2Prompt: snake2PromptFormatted, boardState: boardState, turn: turn, game_id: game_id, round_id: round_id })
+
+          body: JSON.stringify({
+            snake1Prompt: snake1PromptFormatted,
+            snake2Prompt: snake2PromptFormatted,
+            boardState: boardState,
+            turn: turn,
+            game_id: game_id,
+            round_id: round_id,
+          }),
         });
 
-        const  { action1, reason1, action2, reason2 } = await response.json();
-        
-        console.log(`SNAKE 1: ${action1} ${reason1}`)
-        console.log(`SNAKE 2: ${action2} ${reason2}`)
+        const { action1, reason1, action2, reason2 } = await response.json();
+
+        console.log(`SNAKE 1: ${action1} ${reason1}`);
+        console.log(`SNAKE 2: ${action2} ${reason2}`);
 
         moveDirection("snake1", action1);
         moveDirection("snake2", action2);
@@ -283,13 +320,18 @@ export default function Game({game_id,round_id}: {game_id:string,round_id:number
 
         // turn++;
         setTurn(turn + 1);
-      }
-      
-      MakeAction(snake1Prompt,snake2Prompt,boardState,turn,game_id,round_id,gameOver)
+      };
 
-
-    }  
-
+      MakeAction(
+        snake1Prompt,
+        snake2Prompt,
+        boardState,
+        turn,
+        game_id,
+        round_id,
+        gameOver
+      );
+    }
   }, [isPlaying]);
 
   return (
