@@ -76,7 +76,7 @@ Makt the following Chain of Thought in few words:
 export default function Game({game_id,round_id}: {game_id:string,round_id:number}) {
   const size = 15;
   const MAX_TURN = 100;
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [board, setBoard] = useState<number[][]>([]);
   const [boardState, setBoardState] = useState<BoardStateType>(initBoardState);
@@ -294,14 +294,6 @@ export default function Game({game_id,round_id}: {game_id:string,round_id:number
 
   return (
     <>
-      <Button
-        variant="outline"
-        onClick={() => {
-          setIsPlaying(true);
-        }}
-      >
-        Button
-      </Button>
       <GameBoard size={size} board={board} boardState={boardState}></GameBoard>
     </>
   );

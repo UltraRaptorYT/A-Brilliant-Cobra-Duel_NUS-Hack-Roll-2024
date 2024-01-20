@@ -29,7 +29,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
-          <div className="absolute bottom-2 left-2">
+          <div className="fixed bottom-2 left-2">
             <ThemeToggle></ThemeToggle>
           </div>
         </ThemeProvider>
