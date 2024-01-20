@@ -87,7 +87,7 @@ async function openAISnake2(content: string) {
       },
       { role: "user", content: `${content}` },
     ],
-    model: "gpt-4-1106-preview",
+    model: "gpt-3.5-turbo",
     response_format: { type: "json_object" },
   };
   const chatCompletion: OpenAI.Chat.ChatCompletion =
