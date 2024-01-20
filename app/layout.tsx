@@ -3,6 +3,8 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ThemeToggle } from "@/components/theme/ThemeToggle";
+import { Toaster } from "@/components/ui/toaster";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,7 +20,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={cn(inter.className, "min-h-[100dvh] ")}>
+      <body className={cn(inter.className, "min-h-[100dvh] relative")}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"
@@ -26,6 +28,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           {children}
+          <Toaster />
+          <div className="absolute bottom-2 left-2">
+            <ThemeToggle></ThemeToggle>
+          </div>
         </ThemeProvider>
       </body>
     </html>
