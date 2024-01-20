@@ -58,11 +58,8 @@ async function POSTabcd_round(code:string) {
       { status: 500 }
     );
   }
-
   return NextResponse.json(data);
 }
-
-async function POSTabcd_round(round:number,boardState:)
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -186,7 +183,7 @@ interface turnData {
   snake1reason: string;
   snake2action: string;
   snake2reason: string;
-  boardState: BoardStateType;
+  boardState: string;
 } 
 
 async function postTurnData(turnData: turnData) {
@@ -206,7 +203,7 @@ async function postTurnData(turnData: turnData) {
 }
 
 export async function POST(req: NextApiRequest) {
-  var { snake1prompt, snake2prompt } = req.body;
+  var { snake1prompt, snake2prompt,game_id,round_id,turn, boardState } = req.body;
 
   const promiseResults = Promise.all([
     openAISnake1(snake1prompt),
@@ -217,7 +214,21 @@ export async function POST(req: NextApiRequest) {
   // Unpack the action and reason
   var { action: action1, reason: reason1 } = res1;
   var { action: action2, reason: reason2 } = res2;
-  
+
+  // Insert to database
+  var turnData: turnData = {
+    turn_id: turn,
+    round_id: round_id,
+    game_id: game_id,
+    snake1action: action1,
+    snake1reason: reason1,
+    snake2action: action2,
+    snake2reason: reason2,
+  };
+
+
+  // await postTurnData(turnData);
+
   return NextResponse.json({ action1, reason1, action2, reason2 });
 
 }

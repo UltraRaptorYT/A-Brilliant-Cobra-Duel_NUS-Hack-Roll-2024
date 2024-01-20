@@ -31,7 +31,7 @@ export default function Home() {
   return (
     <main className="flex min-h-[100dvh] flex-col items-center">
       <ThemeToggle></ThemeToggle>
-      <Game />
+      <Game game_id="testing" round_id={1}/>
     </main>
   );
 }

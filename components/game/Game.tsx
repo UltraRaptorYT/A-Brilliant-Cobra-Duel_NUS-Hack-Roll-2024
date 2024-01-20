@@ -73,7 +73,7 @@ Makt the following Chain of Thought in few words:
 3. Chose the direction to move on cell closer to the food, check if you will die/lose there and if so chose another direction
 4. Finally output the emoji for the direction you chose`
 
-export default function Game({game_id}: {game_id: string}) {
+export default function Game({game_id,round_id}: {game_id:string,round_id:number}) {
   const size = 15;
   const MAX_TURN = 100;
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -248,10 +248,11 @@ export default function Game({game_id}: {game_id: string}) {
 
     console.log(boardState)
     
-    const MakeAction = async (snake1Prompt:string,snake2Prompt:string,boardState:BoardStateType) => {
+    const MakeAction = async (snake1Prompt:string,snake2Prompt:string,boardState:BoardStateType,turn:number,game_id:string,round_id:number) => {
       
       var snake1PromptFormatted:string = formatPrompt(snake1Prompt,boardState);
       var snake2PromptFormatted:string = formatPrompt(snake2Prompt,boardState);
+
       console.log("snake1PromptFormatted:",snake1PromptFormatted)
       console.log("snake2PromptFormatted:",snake2PromptFormatted)
 
@@ -261,9 +262,9 @@ export default function Game({game_id}: {game_id: string}) {
             'Content-Type': 'application/json'
           },
   
-          body: JSON.stringify({ snake1Prompt: snake1PromptFormatted, snake2Prompt: snake2PromptFormatted, boardState: boardState })
+          body: JSON.stringify({ snake1Prompt: snake1PromptFormatted, snake2Prompt: snake2PromptFormatted, boardState: boardState, turn: turn, game_id: game_id, round_id: round_id })
         });
-
+        
         const  { action1, reason1, action2, reason2 } = await response.json();
         
         console.log(`SNAKE 1: ${action1} ${reason1}`)
@@ -271,11 +272,13 @@ export default function Game({game_id}: {game_id: string}) {
         
         moveDirection("snake1", action1);
         moveDirection("snake2", action2);
-                
-
         setIsPlaying(true);
+
+        // turn++;
+        setTurn(turn + 1);
       }
-      MakeAction(snake1Prompt,snake2Prompt,boardState)
+
+      MakeAction(snake1Prompt,snake2Prompt,boardState,turn,game_id,round_id)
 
 
     }  
