@@ -42,24 +42,10 @@ export interface SnakeActionType {
 }
 
 
-const SUPABASE_URL: string = process.env.SUPABASE_URL || "";
-const SUPABASE_API_KEY: string = process.env.SUPABASE_API_KEY || "";
+const SUPABASE_URL: string = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const SUPABASE_API_KEY: string = process.env.NEXT_PUBLIC_SUPABASE_API_KEY || "";
 const supabase = createClient(SUPABASE_URL, SUPABASE_API_KEY);
 
-async function POSTabcd_round(code:string) {
-  const { data, error } = await supabase
-    .from("abcd_room")
-    .insert({ code: code })
-
-  if (error) {
-    console.log(error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
-  }
-  return NextResponse.json(data);
-}
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -186,10 +172,13 @@ interface turnData {
   boardState: string;
 } 
 
+// 
 async function postTurnData(turnData: turnData) {
+  // Unpack the turnData
+
   const { data, error } = await supabase
     .from("abcd_turn")
-    .insert({ turnData: turnData })
+    .insert(turnData)
 
   if (error) {
     console.log(error);
@@ -202,8 +191,11 @@ async function postTurnData(turnData: turnData) {
   return NextResponse.json(data);
 }
 
-export async function POST(req: NextApiRequest) {
-  var { snake1prompt, snake2prompt,game_id,round_id,turn, boardState } = req.body;
+export async function POST(req: Request) {
+
+  console.log("REQ BODY",req.body)  
+
+  var { snake1prompt, snake2prompt,game_id,round_id,turn, boardState } = await req.json();
 
   const promiseResults = Promise.all([
     openAISnake1(snake1prompt),
@@ -224,10 +216,12 @@ export async function POST(req: NextApiRequest) {
     snake1reason: reason1,
     snake2action: action2,
     snake2reason: reason2,
+    boardState: boardState,
   };
 
-
-  // await postTurnData(turnData);
+  console.log(turnData,"TURN DATA");
+  console.log("boardState",typeof(boardState))
+  await postTurnData(turnData);
 
   return NextResponse.json({ action1, reason1, action2, reason2 });
 
