@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   const { data, error } = await supabase
     .from("abcd_user")
     .insert({ id: user_id })
-
+  
   if (error) {
     console.log(error);
     return NextResponse.json(

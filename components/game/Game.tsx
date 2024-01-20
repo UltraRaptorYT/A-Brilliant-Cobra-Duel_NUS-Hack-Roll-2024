@@ -1,7 +1,11 @@
 import GameBoard from "./GameBoard";
 import { useState, useEffect } from "react";
-import { PosType, SnakeType, BoardStateType, Direction } from "./gameTypes";
+import { PosType, SnakeType, BoardStateType, Direction,SnakeActionType } from "./gameTypes";
 import { Button } from "@/components/ui/button";
+// Import the API client
+// import { POSTSnake1, POSTSnake2 } from "@/app/api/llm/route"
+
+import {toEmoji_board,toChars_board,toBoard_state_str,formatPrompt} from "./promptFormatting"
 
 const initBoardState: BoardStateType = {
   turn: 0,
@@ -32,6 +36,42 @@ const initBoardState: BoardStateType = {
   food: [[1, 2]],
 };
 
+// TESTING PURPOSES ONLY
+const snake1Prompt: string = `You are an expert gamer agent playing the 1vs1 snake game in a grid board. You can move up, down, left or right. 
+You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.""",
+
+"""You are the snake1, which is the color green. Your opponent is the snake2 with color blue. This is the game board in emojis where heads are rounds, bodies are squares and food is an apple: 
+{Emojis_board}
+
+and this is the board state in JSON, positions are in (x, y) format, the game board size is 15 by 15, x goes from 0 to 14 left to right and y goes 0 to 14 up to down: 
+{Board_state_str}
+
+The snake dir parameter is the first letter of the previous chosen direction of the snake, if you chose an opposite direction you will die as you will collide with your own body.
+You have to shortly reason your next move in 1-3 lines and then always add one of the following emojis: ⬆️, ⬇️, ⬅️, ➡️ (for <up>, <down>, <left> and <right>) to chose the direction of your next move.
+Make sure to always add a space after the emoji and only use one emoji in your response which will be your final decision for the turn.`
+
+
+const snake2Prompt: string = `You are an expert gamer agent playing the 1vs1 snake game in a grid board. You can move up, down, left or right. 
+You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.""",
+
+"""You are the snake2, which is the color blue. Your opponent is the snake1 with color green. This is the game board in characters where heads are 'G' (green) and 'B' (blue), bodies are 'g' and 'b' and food is 'R'. Empty cells are marked with '_'. 
+Every line starts also with its number which is at the same time the y coordinate for that line: 
+Characters board:
+{Chars_board}
+
+and this is the board state in JSON, positions are in (x, y) format, the game board size is 15 by 15, x goes from 0 to 14 left to right and y goes 0 to 14 up to down: 
+{Board_state_str}
+
+The snake dir parameter is the first letter o{Emoji_board}f the previous chosen direction of the snake, if you chose an opposite direction you will die as you will collide with your own body.
+You have to shortly reason your next move in 1-3 lines and then always add one of the following emojis: ⬆️, ⬇️, ⬅️, ➡️ (for <up>, <down>, <left> and <right>) to chose the direction of your next move.
+Make sure to always add a space after the emoji and only use one emoji in your response which will be your final decision for the turn.
+
+Makt the following Chain of Thought in few words:
+1. Locate yourself and your head in the chars map (the <B> char) and the (x, y) coordinates from the board state (the element 0 of the body list in snake2, the body parts are ordered from head to tail)
+2. Locate the closest food
+3. Chose the direction to move on cell closer to the food, check if you will die/lose there and if so chose another direction
+4. Finally output the emoji for the direction you chose`
+
 export default function Game() {
   const size = 15;
   const MAX_TURN = 100;
@@ -39,6 +79,10 @@ export default function Game() {
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [board, setBoard] = useState<number[][]>([]);
   const [boardState, setBoardState] = useState<BoardStateType>(initBoardState);
+
+  // Added to store the actions of the snakes per round, to put in Supabase
+  const [snake1Actions, setSnake1Actions] = useState<SnakeActionType[]>([]);
+  const [snake2Actions, setSnake2Actions] = useState<SnakeActionType[]>([]);
 
   function placeFood(boardState: BoardStateType): PosType | undefined {
     let newFoodPos: PosType;
@@ -96,7 +140,7 @@ export default function Game() {
         head = [head[0], head[1] + 1];
         break;
       case "L":
-        head = [head[0] - 1, head[1]];
+        head = [head[0] - 1, head[1]];  
         break;
       case "R":
         head = [head[0] + 1, head[1]];
@@ -126,6 +170,7 @@ export default function Game() {
   // useEffect(() => {
   //   alert("GAME OVER");
   // }, [gameOver]);
+
 
   useEffect(() => {
     if (isPlaying) {
@@ -201,10 +246,37 @@ export default function Game() {
           });
         }
       }
-      // Agent Logic
-      moveDirection("snake1", "D");
-      moveDirection("snake2", "L");
-    }
+
+    console.log(boardState)
+    
+    const MakeAction = async (snake1Prompt:string,snake2Prompt:string,boardState:BoardStateType) => {
+      
+      var snake1PromptFormatted:string = formatPrompt(snake1Prompt,boardState);
+      var snake2PromptFormatted:string = formatPrompt(snake2Prompt,boardState);
+
+      const response = await fetch('/api/llm', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+  
+          body: JSON.stringify({ snake1Prompt: snake1PromptFormatted, snake2Prompt: snake2PromptFormatted, boardState: boardState })
+        });
+
+        const  { action1, reason1, action2, reason2 } = await response.json();
+        
+        console.log(`SNAKE 1: ${action1} ${reason1}`)
+        console.log(`SNAKE 2: ${action2} ${reason2}`)
+        
+        moveDirection("snake1", action1);
+        moveDirection("snake2", action2);
+        
+        setIsPlaying(true);
+      }
+      MakeAction(snake1Prompt,snake2Prompt,boardState)
+
+    }  
+    
   }, [isPlaying]);
 
   return (

@@ -28,3 +28,10 @@ export type SnakeProps = {
   color: string;
   keyProp: string;
 };
+
+
+export interface SnakeActionType {
+    turn: number;
+    action: string;
+    reason: string;
+}
