@@ -73,17 +73,15 @@ Makt the following Chain of Thought in few words:
 3. Chose the direction to move on cell closer to the food, check if you will die/lose there and if so chose another direction
 4. Finally output the emoji for the direction you chose`
 
-export default function Game() {
+export default function Game({game_id}: {game_id: string}) {
   const size = 15;
   const MAX_TURN = 100;
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [board, setBoard] = useState<number[][]>([]);
   const [boardState, setBoardState] = useState<BoardStateType>(initBoardState);
+  const [turn, setTurn] = useState<number>(0);
 
-  // Added to store the actions of the snakes per round, to put in Supabase
-  const [snake1Actions, setSnake1Actions] = useState<SnakeActionType[]>([]);
-  const [snake2Actions, setSnake2Actions] = useState<SnakeActionType[]>([]);
 
   function placeFood(boardState: BoardStateType): PosType | undefined {
     let newFoodPos: PosType;
@@ -273,13 +271,15 @@ export default function Game() {
         
         moveDirection("snake1", action1);
         moveDirection("snake2", action2);
-        
+                
+
         setIsPlaying(true);
       }
       MakeAction(snake1Prompt,snake2Prompt,boardState)
 
+
     }  
-    
+
   }, [isPlaying]);
 
   return (

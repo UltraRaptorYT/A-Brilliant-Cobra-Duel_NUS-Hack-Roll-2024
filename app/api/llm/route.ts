@@ -1,7 +1,68 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
-
 import { NextApiRequest } from "next/types";
+import { createClient } from "@supabase/supabase-js";
+
+export type PosType = [number, number];
+
+export type SnakeType = {
+  body: PosType[];
+  dir: Direction;
+  prevDir: Direction;
+  dirArr: Direction[];
+  isAlive: boolean;
+};
+
+export type Direction = "U" | "D" | "L" | "R";
+
+export type BoardStateType = {
+  turn: number;
+  snake1: SnakeType;
+  snake2: SnakeType;
+  food: PosType[];
+};
+
+export type GameBoardProps = {
+  size: number;
+  board: number[][];
+  boardState: BoardStateType;
+};
+
+export type SnakeProps = {
+  dir?: Direction;
+  color: string;
+  keyProp: string;
+};
+
+
+export interface SnakeActionType {
+    turn: number;
+    action: string;
+    reason: string;
+}
+
+
+const SUPABASE_URL: string = process.env.SUPABASE_URL || "";
+const SUPABASE_API_KEY: string = process.env.SUPABASE_API_KEY || "";
+const supabase = createClient(SUPABASE_URL, SUPABASE_API_KEY);
+
+async function POSTabcd_round(code:string) {
+  const { data, error } = await supabase
+    .from("abcd_room")
+    .insert({ code: code })
+
+  if (error) {
+    console.log(error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json(data);
+}
+
+async function POSTabcd_round(round:number,boardState:)
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -115,6 +176,33 @@ async function openAISnake2(content: string) {
   var { action, reason } = arg;
 
   return { action: action, reason: reason };
+}
+
+interface turnData {
+  turn_id: number;
+  round_id: number;
+  game_id: string;
+  snake1action: string;
+  snake1reason: string;
+  snake2action: string;
+  snake2reason: string;
+  boardState: BoardStateType;
+} 
+
+async function postTurnData(turnData: turnData) {
+  const { data, error } = await supabase
+    .from("abcd_turn")
+    .insert({ turnData: turnData })
+
+  if (error) {
+    console.log(error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+
+  return NextResponse.json(data);
 }
 
 export async function POST(req: NextApiRequest) {
