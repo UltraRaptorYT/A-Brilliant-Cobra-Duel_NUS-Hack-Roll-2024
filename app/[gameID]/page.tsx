@@ -17,7 +17,9 @@ import {
 import Markdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { v4 as uuidv4 } from "uuid";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import CustomButton from "@/components/CustomButton";
 import {
   Card,
   CardContent,
@@ -48,7 +50,7 @@ export default function GameRoom({ params }: GameTypeParams) {
   const [gameStart, setGameStart] = useState<boolean>(false);
   const [accordionVal, setAccordionVal] = useState<string>("");
   const [gameReady, setGameReady] = useState<boolean>(false);
-  const [historyPrompt, setHistoryPrompt] = useState<string[]>([
+  const [storyPrompt, setStoryPrompt] = useState<string[]>([
     "testing1",
     "testing2",
     "testing3",
@@ -57,7 +59,9 @@ export default function GameRoom({ params }: GameTypeParams) {
   ]);
   const [historyData, setHistoryData] = useState<string[]>([]);
   const [currentPrompt, setCurrentPrompt] = useState<string>("");
-  const fixedPromptAdd: string[] = ["emojis_board", "chars_board"];
+  const fixedPromptAdd: string[] = ["{emojis_board}", "{chars_board}"];
+  const [ready, setReady] = useState<boolean>(false);
+  const systemMessage = ``;
   const instruction = `# Instructions:
 
 -This is a 1vs1 snake game where two LLM Agents are playing against each other. You can either modify the model and/or the prompt for each Agent.
@@ -313,7 +317,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
       {gameStart ? (
         <Game round_id={roundID} game_id={gameID} />
       ) : (
-        <div className="flex flex-col gap-8 w-full">
+        <div className="flex flex-col gap-4 w-full">
           <Accordion
             type="single"
             collapsible
@@ -328,7 +332,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
               <AccordionTrigger
                 className={cn(
                   accordionVal ? "border-b" : "",
-                  "px-4 no-underline hover:no-underline"
+                  "px-4 no-underline hover:no-underline text-base"
                 )}
               >
                 Instructions
@@ -339,60 +343,135 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
             </AccordionItem>
           </Accordion>
           {gameReady ? (
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-y-3 md:gap-x-3 h-full">
-              <div className="col-span-3 grid grid-cols-4 order-1 md:order-0 gap-2 h-full min-h-[200px] max-h-[300px]">
-                <Textarea
-                  placeholder="Type your message here."
-                  rows={10}
-                  className="col-span-3"
-                  value={currentPrompt}
-                  onChange={(e) => setCurrentPrompt(e.target.value)}
-                />
-                <div className="flex flex-col gap-2 h-full min-h-[200px] max-h-[300px]">
-                  {fixedPromptAdd.map((val, idx) => {
-                    return (
-                      <Button
-                        key={`fixedPromptAdd_${idx}`}
-                        variant={"secondary"}
-                        size={"sm"}
-                        className="text-xs w-full overflow-hidden"
-                        onClick={() => {
-                          let addValue = `{${val}} `;
-                          setCurrentPrompt((prevState) => {
-                            if (prevState.endsWith(" ")) {
-                              return prevState + addValue;
-                            }
-                            return prevState + " " + addValue;
-                          });
-                        }}
-                      >
-                        {val}
-                      </Button>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="flex flex-col order-0 md:order-1 gap-2 h-full min-h-[200px] max-h-[300px]">
-                <h1 className="text-start md:text-center font-semibold underline">
-                  History
+            <>
+              <div className="flex flex-col gap-2">
+                <h1 className="text-center font-semibold underline">
+                  Sample Prompts
                 </h1>
-                <div className="flex overflow-auto md:flex-col gap-3 w-full h-full">
-                  {historyPrompt.map((val, idx) => {
+                <div className="flex overflow-auto gap-3 w-full h-full">
+                  {storyPrompt.map((val, idx) => {
                     return (
                       <Card
-                        key={`historyPrompt_${idx}`}
+                        key={`storyPrompt_${idx}`}
                         onClick={() => setCurrentPrompt(val)}
-                        className="md:w-full min-w-[150px]"
+                        className="w-[150px] max-h-[100px] h-[75px] text-ellipsis"
                       >
                         <CardContent className="p-4">
-                          <p className="text-sm">{val}</p>
+                          <p className="text-xs">{val}</p>
                         </CardContent>
                       </Card>
                     );
                   })}
                 </div>
+                <div className="flex flex-col gap-2">
+                  <h1 className="text-center font-semibold underline">
+                    Helper Functions
+                  </h1>
+                  <div className="flex gap-2 items-center justify-center">
+                    {fixedPromptAdd.map((val, idx) => {
+                      return (
+                        <Button
+                          key={`fixedPromptAdd_${idx}`}
+                          variant={"secondary"}
+                          className="text-xs w-fit overflow-hidden"
+                          onClick={() => {
+                            let addValue = `${val} `;
+                            setCurrentPrompt((prevState) => {
+                              if (prevState.endsWith(" ")) {
+                                return prevState + addValue;
+                              }
+                              return prevState + " " + addValue;
+                            });
+                          }}
+                        >
+                          {val}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+                <div className="grid w-full gap-1.5">
+                  <Label htmlFor="message">System Message</Label>
+                  <Textarea
+                    placeholder="Type System Message here."
+                    rows={8}
+                    value={systemMessage}
+                    disabled
+                  />
+                </div>
+                <div className="grid w-full gap-1.5">
+                  <Label htmlFor="message">Human Message</Label>
+                  <Textarea
+                    placeholder="Type Human Message here."
+                    rows={8}
+                    value={currentPrompt}
+                    onChange={(e) => setCurrentPrompt(e.target.value)}
+                  />
+                </div>
+              </div>
+              <div className="flex justify-center">
+                <CustomButton
+                  ready={ready}
+                  onClick={() => {
+                    setReady((prevState) => {
+                      let newState = !prevState;
+                      return newState;
+                    });
+                  }}
+                ></CustomButton>
+              </div>
+              <div className="flex flex-col">
+                <Accordion
+                  type="multiple"
+                  className="min-w-[300px] w-full max-w-[800px]"
+                >
+                  <AccordionItem value="item-1" className="border-0">
+                    <AccordionTrigger className="no-underline hover:no-underline text-center text-xl pt-2">
+                      <div className="w-[16px] aspect-square"></div>
+                      View All History
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4">
+                      <Accordion
+                        type="single"
+                        collapsible
+                        className="min-w-[300px] w-full max-w-[800px]"
+                      >
+                        <AccordionItem
+                          value="item-1"
+                          className="rounded-lg border-2"
+                        >
+                          <AccordionTrigger
+                            className={cn(
+                              accordionVal ? "border-b" : "",
+                              "px-4 no-underline hover:no-underline text-base"
+                            )}
+                          >
+                            Game 1
+                          </AccordionTrigger>
+                          <AccordionContent className="py-4 px-4"></AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem
+                          value="item-2"
+                          className="rounded-lg border-2"
+                        >
+                          <AccordionTrigger
+                            className={cn(
+                              accordionVal ? "border-b" : "",
+                              "px-4 no-underline hover:no-underline text-base"
+                            )}
+                          >
+                            Game 1
+                          </AccordionTrigger>
+                          <AccordionContent className="py-4 px-4"></AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+            </>
           ) : (
             <div className="text-xl text-center py-10">
               Waiting for other player...
