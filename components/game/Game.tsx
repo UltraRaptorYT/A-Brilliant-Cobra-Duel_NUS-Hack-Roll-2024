@@ -8,9 +8,6 @@ import {
   Direction,
   SnakeActionType,
 } from "./gameTypes";
-import { Button } from "@/components/ui/button";
-// Import the API client
-// import { POSTSnake1, POSTSnake2 } from "@/app/api/llm/route"
 
 import {
   toEmoji_board,
@@ -87,10 +84,15 @@ export default function Game({
   game_id,
   round_id,
   gameState,
+  playerData,
 }: {
   game_id: string;
   round_id: number;
   gameState: boolean;
+  playerData: {
+    player1: { user_id: string; prompt: string };
+    player2: { user_id: string; prompt: string };
+  };
 }) {
   const size = 15;
   const MAX_TURN = 100;

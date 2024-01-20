@@ -40,6 +40,11 @@ function generateRoundID() {
   return Math.floor(Math.random() * 9000000000) + 1000000000;
 }
 
+type PlayerData = {
+  user_id: string;
+  prompt: string;
+};
+
 export default function GameRoom({ params }: GameTypeParams) {
   const { toast } = useToast();
   const [channel, setChannel] = useState<RealtimeChannel>();
@@ -51,6 +56,14 @@ export default function GameRoom({ params }: GameTypeParams) {
   const [accordionVal, setAccordionVal] = useState<string>("");
   const [gameReady, setGameReady] = useState<boolean>(false);
   const [storyPrompt, setStoryPrompt] = useState<string[]>([
+    `You are the snake1, which is the color green. Your opponent is the snake2 with color blue. This is the game board in emojis where heads are rounds, bodies are squares and food is an apple: 
+    {Emojis_board}
+    
+    and this is the board state in JSON, positions are in (x, y) format, the game board size is 15 by 15, x goes from 0 to 14 left to right and y goes 0 to 14 up to down: 
+    {board_state_str}
+    
+    The snake dir parameter is the first letter of the previous chosen direction of the snake, if you chose an opposite direction you will die as you will collide with your own body.
+    You have to shortly reason your next move in 1-3 lines and then always add one of the following Characters: U, D, L, R (for <up>, <down>, <left> and <right>) to chose the direction of your next move.`,
     `You are the snake2, which is the color blue. Your opponent is the snake1 with color green. This is the game board in characters where heads are 'G' (green) and 'B' (blue), bodies are 'g' and 'b' and food is 'R'. Empty cells are marked with '_'. 
     Every line starts also with its number which is at the same time the y coordinate for that line: 
     Characters board:
@@ -59,27 +72,28 @@ export default function GameRoom({ params }: GameTypeParams) {
     and this is the board state in JSON, positions are in (x, y) format, the game board size is 15 by 15, x goes from 0 to 14 left to right and y goes 0 to 14 up to down: 
     {Board_state_str}
     
-    Makt the following Chain of Thought in few words:
+    Make the following Chain of Thought in few words:
     1. Locate yourself and your head in the chars map (the <B> char) and the (x, y) coordinates from the board state (the element 0 of the body list in snake2, the body parts are ordered from head to tail)
     2. Locate the closest food
     3. Chose the direction to move on cell closer to the food, check if you will die/lose there and if so chose another direction
     4. Finally output the emoji for the direction you chose`,
-
-    `You are the snake1, which is the color green. Your opponent is the snake2 with color blue. This is the game board in emojis where heads are rounds, bodies are squares and food is an apple: 
-    {emojis_board}
-    
-    and this is the board state in JSON, positions are in (x, y) format, the game board size is 15 by 15, x goes from 0 to 14 left to right and y goes 0 to 14 up to down: 
-    {board_state_str}
-    
-    The snake dir parameter is the first letter of the previous chosen direction of the snake, if you chose an opposite direction you will die as you will collide with your own body.
-    You have to shortly reason your next move in 1-3 lines and then always add one of the following Charaters: U, D, L, R (for <up>, <down>, <left> and <right>) to chose the direction of your next move.`
-
   ]);
   const [historyData, setHistoryData] = useState<string[]>([]);
   const [currentPrompt, setCurrentPrompt] = useState<string>("");
-  const fixedPromptAdd: string[] = ["{Emojis_board}", "{Chars_board}","{Board_state_str}"];
+  const fixedPromptAdd: string[] = [
+    "{Emojis_board}",
+    "{Chars_board}",
+    "{Board_state_str}",
+  ];
   const [ready, setReady] = useState<boolean>(false);
   const systemMessage = `You are an expert gamer agent playing the 1vs1 snake game in a grid board.You are Snake2. You can move up, down, left or right. You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.\n\nRules:\n1.You Must always give reason for your action taken\n2.Must always format output in JSON with two keys 'action' and 'reason'Example:{'action':'U','reason':string...}\n3.Final action must be either 'U','D','L','R`;
+  const [playerData, setPlayerData] = useState<{
+    player1: PlayerData;
+    player2: PlayerData;
+  }>({
+    player1: { user_id: "", prompt: "" },
+    player2: { user_id: "", prompt: "" },
+  });
   const instruction = `# Instructions:
 
 -This is a 1vs1 snake game where two LLM Agents are playing against each other. You can either modify the model and/or the prompt for each Agent.
@@ -88,7 +102,7 @@ export default function GameRoom({ params }: GameTypeParams) {
 
 -It's not necessary to use all of them, it would take longer and spend more tokens
 
-### Example {emojis_board} (690 tokens):
+### Example {Emojis_board} (690 tokens):
 \n
 ---
 
@@ -122,7 +136,7 @@ export default function GameRoom({ params }: GameTypeParams) {
 
 14⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
 
-### Example {chars_board} (240 tokens):
+### Example {Chars_board} (240 tokens):
 
 ---
 
@@ -158,7 +172,7 @@ export default function GameRoom({ params }: GameTypeParams) {
 
 
 
-### Example {board_state_str} (100-120 tokens):
+### Example {Board_state_str} (100-120 tokens):
 
 ---
 
@@ -210,7 +224,6 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
   }
 
   async function addUserRoom(room_id: string, user_id: string) {
-    console.log("hi");
     const { error } = await supabase
       .from("abcd_game_user")
       .insert({ game_id: room_id, user_id: user_id });
@@ -249,7 +262,21 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
         .on("presence", { event: "sync" }, () => {
           const newState = channel.presenceState();
           console.log("sync", newState);
-          if (Object.keys(newState).length == 2) {
+          let userIDArray = Object.keys(newState);
+          if (userIDArray.length == 2) {
+            setPlayerData(() => {
+              let output = {
+                player1: { user_id: userIDArray[0], prompt: "" },
+                player2: { user_id: userIDArray[1], prompt: "" },
+              };
+              console.log("HELLO");
+              channel?.send({
+                type: "broadcast",
+                event: "updatePlayerData",
+                payload: output,
+              });
+              return output;
+            });
           }
         })
         .on("presence", { event: "join" }, async ({ key, newPresences }) => {
@@ -261,16 +288,54 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
           console.log("leave", key, leftPresences);
           await removeUserRoom(gameID, key);
           await checkRoom(gameID);
+          setReady(false);
+          setGameReady(false);
+          setGameStart(false);
+          setCurrentPrompt("");
+          setPlayerData(() => {
+            let output = {
+              player1: { user_id: "", prompt: "" },
+              player2: { user_id: "", prompt: "" },
+            };
+            return output;
+          });
         });
 
-      channel.on(
-        "broadcast",
-        { event: "gameStart" },
-        ({ payload }: { payload: { state: boolean } }) => {
-          console.log(payload);
-          setGameStart(payload.state);
-        }
-      );
+      channel
+        .on(
+          "broadcast",
+          { event: "gameStart" },
+          ({ payload }: { payload: { state: boolean } }) => {
+            console.log(payload);
+            setGameStart(payload.state);
+          }
+        )
+        .on(
+          "broadcast",
+          { event: "updatePlayerData" },
+          ({
+            payload,
+          }: {
+            payload: { player1: PlayerData; player2: PlayerData };
+          }) => {
+            console.log(payload);
+            setPlayerData(payload);
+            if (
+              payload.player1.user_id &&
+              payload.player1.prompt &&
+              payload.player2.user_id &&
+              payload.player2.prompt
+            ) {
+              channel?.send({
+                type: "broadcast",
+                event: "gameStart",
+                payload: { state: true },
+              });
+            } else {
+              // alert(JSON.stringify(payload));
+            }
+          }
+        );
 
       channel.subscribe(async (status) => {
         if (status !== "SUBSCRIBED") {
@@ -302,6 +367,39 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
         setRoundID(generateRoundID());
       }
     } while (error);
+  }
+
+  async function updateReady(gameState: boolean) {
+    if (!gameState) {
+      return console.log("error");
+    }
+    if (playerData?.player1.user_id == userID) {
+      setPlayerData((prevState) => {
+        let output = {
+          ...prevState,
+          player1: { ...prevState.player1, prompt: currentPrompt },
+        };
+        channel?.send({
+          type: "broadcast",
+          event: "updatePlayerData",
+          payload: output,
+        });
+        return output;
+      });
+    } else {
+      setPlayerData((prevState) => {
+        let output = {
+          ...prevState,
+          player2: { ...prevState.player2, prompt: currentPrompt },
+        };
+        channel?.send({
+          type: "broadcast",
+          event: "updatePlayerData",
+          payload: output,
+        });
+        return output;
+      });
+    }
   }
 
   async function checkGame() {
@@ -480,7 +578,16 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
                   ready={ready}
                   onClick={() => {
                     setReady((prevState) => {
+                      if (currentPrompt.trim().length == 0) {
+                        toast({
+                          title: "Please include Human Message",
+                          duration: 1000,
+                          variant: "destructive",
+                        });
+                        return false;
+                      }
                       let newState = !prevState;
+                      updateReady(newState);
                       return newState;
                     });
                   }}
