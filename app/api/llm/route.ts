@@ -35,9 +35,9 @@ export type SnakeProps = {
 };
 
 export interface SnakeActionType {
-    turn: number;
-    action: string;
-    reason: string;
+  turn: number;
+  action: string;
+  reason: string;
 }
 
 const SUPABASE_URL: string = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -54,27 +54,27 @@ async function openAISnake1(content: string) {
       {
         role: "system",
         content:
-          "You are an expert gamer agent playing the 1vs1 snake game in a grid board. You can move up, down, left or right. You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.\n\nRules:\n1.You Must always give reason for your action taken\n2.Must always format output in JSON with two keys 'action' and 'reason'\n3.Final action must be either 'U','D','L','R'",
+          "You are an expert gamer agent playing the 1vs1 snake game in a grid board.You are Snake1. You can move up, down, left or right. You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.\n\nRules:\n1.You Must always give reason for your action taken\n2.Must always format output in JSON with two keys 'action' and 'reason'Example:{'action':'U','reason':string...}\n3.Final action must be either 'U','D','L','R'",
       },
       { role: "user", content: `${content}` },
     ],
-    model: "gpt-3.5-turbo-1106",
+    model: "gpt-4-1106-preview",
     response_format: { type: "json_object" },
   };
 
   const chatCompletion: OpenAI.Chat.ChatCompletion =
     await openai.chat.completions.create(params);
 
-  var arg = chatCompletion.choices[0].message.tool_calls?.[0].function.arguments;
-  var arg1  = chatCompletion.choices[0].message.content;
+  var arg1 = chatCompletion.choices[0].message.content;
+  console.dir("arg1\n", arg1);
 
-  if (!arg) {
+  if (!arg1) {
     throw new Error("No arg");
   }
 
-  var { action, reason } = JSON.parse(arg);
-  return { action: action, reason: reason } ;
-
+  // var { action, reason } = JSON.parse(arg);
+  var { action, reason } = JSON.parse(arg1);
+  return { action: action, reason: reason };
 }
 
 async function openAISnake2(content: string) {
@@ -83,53 +83,26 @@ async function openAISnake2(content: string) {
       {
         role: "system",
         content:
-          "You are an expert gamer agent playing the 1vs1 snake game in a grid board. You can move up, down, left or right. You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.\n\nRules:\n1.You Must always give reason for your action taken\n2.Must always format output in JSON\n3.Final action must be either 'U','D','L','R'",
+          "You are an expert gamer agent playing the 1vs1 snake game in a grid board.You are Snake2. You can move up, down, left or right. You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.\n\nRules:\n1.You Must always give reason for your action taken\n2.Must always format output in JSON with two keys 'action' and 'reason'Example:{'action':'U','reason':string...}\n3.Final action must be either 'U','D','L','R'",
       },
       { role: "user", content: `${content}` },
     ],
-    model: "gpt-3.5-turbo-1106",
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "make_action",
-          description:
-            "Make an action for snake2, given the board state,rules and current board positon",
-          parameters: {
-            type: "object",
-            properties: {
-              action: {
-                type: "string",
-                description: "Action to take for the snake. U,D,L,R",
-                enum: ["U", "D", "L", "R"],
-              },
-              reason: {
-                type: "string",
-                description: "Reason for taking the action.",
-              },
-            },
-            required: ["action", "reason"],
-          },
-        },
-      },
-    ],
-    tool_choice: { type: "function", function: { name: "make_action" } },
+    model: "gpt-4-1106-preview",
     response_format: { type: "json_object" },
   };
   const chatCompletion: OpenAI.Chat.ChatCompletion =
     await openai.chat.completions.create(params);
 
-  var arg =
-    chatCompletion.choices[0].message.tool_calls?.[0].function.arguments;
+  var arg1 = chatCompletion.choices[0].message.content;
+  console.dir("arg1\n", arg1);
 
-  if (!arg) {
+  if (!arg1) {
     throw new Error("No arg");
   }
 
-  var { action, reason } = JSON.parse(arg);
-
+  // var { action, reason } = JSON.parse(arg);
+  var { action, reason } = JSON.parse(arg1);
   return { action: action, reason: reason };
-
 }
 
 interface turnData {
@@ -141,15 +114,13 @@ interface turnData {
   snake2action: string;
   snake2reason: string;
   boardState: string;
-} 
+}
 
-// 
+//
 async function postTurnData(turnData: turnData) {
   // Unpack the turnData
 
-  const { data, error } = await supabase
-    .from("abcd_turn")
-    .insert(turnData)
+  const { data, error } = await supabase.from("abcd_turn").insert(turnData);
 
   if (error) {
     console.log(error);
@@ -163,10 +134,10 @@ async function postTurnData(turnData: turnData) {
 }
 
 export async function POST(req: Request) {
+  console.log("REQ BODY", req.body);
 
-  console.log("REQ BODY",req.body)  
-
-  var { snake1prompt, snake2prompt,game_id,round_id,turn, boardState } = await req.json();
+  var { snake1prompt, snake2prompt, game_id, round_id, turn, boardState } =
+    await req.json();
 
   const promiseResults = Promise.all([
     openAISnake1(snake1prompt),
@@ -190,11 +161,9 @@ export async function POST(req: Request) {
     boardState: boardState,
   };
 
-  console.log(turnData,"TURN DATA");
-  console.log("boardState",typeof(boardState))
+  console.log(turnData, "TURN DATA");
+  console.log("boardState", typeof boardState);
   await postTurnData(turnData);
-  
 
   return NextResponse.json({ action1, reason1, action2, reason2 });
-
 }
