@@ -113,14 +113,15 @@ export function formatPrompt(content:string,boardState:BoardStateType):string {
     
     // If match, replace 
     if (content.match(regrex)) {
+
       switch (extractString[i]) {
-        case "Emoji_board":
+        case "{Emoji_board}":
           content = content.replace(regrex, "\n"+toEmoji_board(boardState)+"\n");
           break;
-        case "Chars_board":
+        case "{Chars_board}":
           content = content.replace(regrex, "\n"+toChars_board(boardState)+"\n");
           break;
-        case "Board_state_str":
+        case "{Board_state_str}":
           content = content.replace(regrex, "\n"+toBoard_state_str(boardState)+"\n");
           break;
       }
