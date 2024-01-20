@@ -34,18 +34,15 @@ export type SnakeProps = {
   keyProp: string;
 };
 
-
 export interface SnakeActionType {
     turn: number;
     action: string;
     reason: string;
 }
 
-
 const SUPABASE_URL: string = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const SUPABASE_API_KEY: string = process.env.NEXT_PUBLIC_SUPABASE_API_KEY || "";
 const supabase = createClient(SUPABASE_URL, SUPABASE_API_KEY);
-
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -90,18 +87,19 @@ async function openAISnake1(content: string) {
     tool_choice: { type: "function", function: { name: "make_action" } },
     response_format: { type: "json_object" },
   };
+
   const chatCompletion: OpenAI.Chat.ChatCompletion =
     await openai.chat.completions.create(params);
 
-  var arg =
-    chatCompletion.choices[0].message.tool_calls?.[0].function.arguments;
+  var arg = chatCompletion.choices[0].message.tool_calls?.[0].function.arguments;
 
   if (!arg) {
     throw new Error("No arg");
   }
-  var { action, reason } = JSON.parse(arg);
 
-  return { action: action, reason: reason };
+  var { action, reason } = JSON.parse(arg);
+  return { action: action, reason: reason } ;
+
 }
 
 async function openAISnake2(content: string) {
@@ -152,6 +150,7 @@ async function openAISnake2(content: string) {
   if (!arg) {
     throw new Error("No arg");
   }
+  
   var { action, reason } = JSON.parse(arg);
 
   return { action: action, reason: reason };
@@ -215,7 +214,7 @@ export async function POST(req: Request) {
     snake2reason: reason2,
     boardState: boardState,
   };
-  
+
   console.log(turnData,"TURN DATA");
   console.log("boardState",typeof(boardState))
   await postTurnData(turnData);
