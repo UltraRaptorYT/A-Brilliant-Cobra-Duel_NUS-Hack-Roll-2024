@@ -111,10 +111,11 @@ async function openAISnake2(content: string) {
     {
       role: "system",
       content:
-        "You are an expert gamer agent playing the 1vs1 snake game in a grid board. You can move up, down, left or right. You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.\n\nRules:\n1.You Must always give reason for your action taken\n2.Must always format output in JSON\n3.Final action must be either 'U','D','L','R'",
+        "You are an expert gamer agent playing the 1vs1 snake game in a grid board. You can move up, down, left or right. You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.\n\nRules:\n1.You Must always give reason for your action taken, must give detailed explanation with alot of words\n2.Must always format output in JSON\n3.Final action must be either 'U','D','L','R'",
     },
     { role: "user", content: `${content}` },
   ];
+
   const tools = [
     {
       type: "function",
