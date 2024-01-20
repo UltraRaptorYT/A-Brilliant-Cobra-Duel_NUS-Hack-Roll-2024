@@ -47,7 +47,7 @@ export default function GameRoom({ params }: GameTypeParams) {
   const [userID, setUserID] = useState<string>("");
   const [roundID, setRoundID] = useState<number>(generateRoundID());
   const gameID = params.gameID;
-  const [gameStart, setGameStart] = useState<boolean>(true);
+  const [gameStart, setGameStart] = useState<boolean>(false);
   const [accordionVal, setAccordionVal] = useState<string>("");
   const [gameReady, setGameReady] = useState<boolean>(false);
   const [storyPrompt, setStoryPrompt] = useState<string[]>([
@@ -328,7 +328,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
 
   return (
     <main className="flex min-h-[100dvh] flex-col items-center py-8 px-4 w-full min-w-[300px] max-w-[800px] mx-auto gap-4">
-      <div className="flex flex-col gap-4 items-center justify-center">
+      <div className="flex gap-4 items-center justify-around w-full">
         <div className="text-xl flex gap-4 items-center justify-between">
           Game Code: <span className="font-bold">{gameID}</span>
           <Button
@@ -406,32 +406,35 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
                     );
                   })}
                 </div>
-                <div className="flex flex-col gap-2">
-                  <h1 className="text-center font-semibold underline">
-                    Helper Functions
-                  </h1>
-                  <div className="flex gap-2 items-center justify-center">
-                    {fixedPromptAdd.map((val, idx) => {
-                      return (
-                        <Button
-                          key={`fixedPromptAdd_${idx}`}
-                          variant={"secondary"}
-                          className="text-xs w-fit overflow-hidden"
-                          onClick={() => {
-                            let addValue = `${val} `;
-                            setCurrentPrompt((prevState) => {
-                              if (prevState.endsWith(" ")) {
-                                return prevState + addValue;
-                              }
-                              return prevState + " " + addValue;
-                            });
-                          }}
-                        >
-                          {val}
-                        </Button>
-                      );
-                    })}
+                <div className="flex gap-4 justify-around">
+                  <div className="flex flex-col gap-2">
+                    <h1 className="text-center font-semibold underline">
+                      Helper Functions
+                    </h1>
+                    <div className="flex gap-2 items-center justify-center">
+                      {fixedPromptAdd.map((val, idx) => {
+                        return (
+                          <Button
+                            key={`fixedPromptAdd_${idx}`}
+                            variant={"secondary"}
+                            className="text-xs w-fit overflow-hidden"
+                            onClick={() => {
+                              let addValue = `${val} `;
+                              setCurrentPrompt((prevState) => {
+                                if (prevState.endsWith(" ")) {
+                                  return prevState + addValue;
+                                }
+                                return prevState + " " + addValue;
+                              });
+                            }}
+                          >
+                            {val}
+                          </Button>
+                        );
+                      })}
+                    </div>
                   </div>
+                  <div>hi</div>
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
