@@ -54,37 +54,11 @@ async function openAISnake1(content: string) {
       {
         role: "system",
         content:
-          "You are an expert gamer agent playing the 1vs1 snake game in a grid board. You can move up, down, left or right. You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.\n\nRules:\n1.You Must always give reason for your action taken\n2.Must always format output in JSON\n3.Final action must be either 'U','D','L','R'",
+          "You are an expert gamer agent playing the 1vs1 snake game in a grid board. You can move up, down, left or right. You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.\n\nRules:\n1.You Must always give reason for your action taken\n2.Must always format output in JSON with two keys 'action' and 'reason'\n3.Final action must be either 'U','D','L','R'",
       },
       { role: "user", content: `${content}` },
     ],
     model: "gpt-3.5-turbo-1106",
-    tools: [
-      {
-        type: "function",
-        function: {
-          name: "make_action",
-          description:
-            "Make an action for snake1, given the board state,rules and current board positon",
-          parameters: {
-            type: "object",
-            properties: {
-              action: {
-                type: "string",
-                description: "Action to take for the snake. U,D,L,R",
-                enum: ["U", "D", "L", "R"],
-              },
-              reason: {
-                type: "string",
-                description: "Reason for taking the action.",
-              },
-            },
-            required: ["action", "reason"],
-          },
-        },
-      },
-    ],
-    tool_choice: { type: "function", function: { name: "make_action" } },
     response_format: { type: "json_object" },
   };
 
@@ -92,6 +66,7 @@ async function openAISnake1(content: string) {
     await openai.chat.completions.create(params);
 
   var arg = chatCompletion.choices[0].message.tool_calls?.[0].function.arguments;
+  var arg1  = chatCompletion.choices[0].message.content;
 
   if (!arg) {
     throw new Error("No arg");
@@ -150,7 +125,7 @@ async function openAISnake2(content: string) {
   if (!arg) {
     throw new Error("No arg");
   }
-  
+
   var { action, reason } = JSON.parse(arg);
 
   return { action: action, reason: reason };
@@ -218,6 +193,7 @@ export async function POST(req: Request) {
   console.log(turnData,"TURN DATA");
   console.log("boardState",typeof(boardState))
   await postTurnData(turnData);
+  
 
   return NextResponse.json({ action1, reason1, action2, reason2 });
 

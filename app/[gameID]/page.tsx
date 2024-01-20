@@ -47,7 +47,7 @@ export default function GameRoom({ params }: GameTypeParams) {
   const [userID, setUserID] = useState<string>("");
   const [roundID, setRoundID] = useState<number>(generateRoundID());
   const gameID = params.gameID;
-  const [gameStart, setGameStart] = useState<boolean>(false);
+  const [gameStart, setGameStart] = useState<boolean>(true);
   const [accordionVal, setAccordionVal] = useState<string>("");
   const [gameReady, setGameReady] = useState<boolean>(false);
   const [storyPrompt, setStoryPrompt] = useState<string[]>([
@@ -65,47 +65,84 @@ export default function GameRoom({ params }: GameTypeParams) {
   const instruction = `# Instructions:
 
 -This is a 1vs1 snake game where two LLM Agents are playing against each other. You can either modify the model and/or the prompt for each Agent.
+
 -The following variables are available for the prompt, updated at each turn, in order to make the agent aware of the current situation: {emojis_board}, {chars_board}, {board_state_str}. 
 
 -It's not necessary to use all of them, it would take longer and spend more tokens
 
 ### Example {emojis_board} (690 tokens):
+\n
+---
+
 00⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
+
 01⬜⬜⬜⬜⬜⬜⬜⬜🍎⬜⬜⬜⬜⬜⬜
+
 02⬜⬜🟩🟩🟩🟢⬜⬜⬜⬜⬜⬜⬜⬜⬜
+
 03⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
+
 04⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
+
 05⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
+
 06⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
+
 07⬜⬜⬜⬜⬜⬜⬜🍎⬜⬜⬜⬜⬜⬜⬜
+
 08⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
+
 09⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
+
 10⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
+
 11⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
+
 12⬜⬜⬜⬜⬜⬜⬜⬜⬜🔵🟦🟦🟦⬜⬜
+
 13⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
+
 14⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜
 
-—
-
 ### Example {chars_board} (240 tokens):
+
+---
+
 00 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
 01 _ _ _ _ _ _ _ _ R _ _ _ _ _ _
+
 02 _ _ g g g G _ _ _ _ _ _ _ _ _
+
 03 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
 04 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
 05 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
 06 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
 07 _ _ _ _ _ _ _ R _ _ _ _ _ _ _
+
 08 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
 09 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
 10 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
 11 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
 12 _ _ _ _ _ _ _ _ _ B b b b _ _
+
 13 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
 14 _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
 
+
+
 ### Example {board_state_str} (100-120 tokens):
+
+---
 
 {
     "turn": 0,
@@ -122,12 +159,18 @@ export default function GameRoom({ params }: GameTypeParams) {
     "food": [(7, 7), (8, 1)],
 }
 
+---
+
 ## More Details Default prompt
 
-You will find a couple of default prompt examples that you can modify.
-The agent has always to output one (and only one) of the following emojis: U,D,L,R to chose the direction of the next move.
+-You will find a couple of default prompt examples that you can modify.
+
+-The agent has always to output one (and only one) of the following emojis: U,D,L,R to chose the direction of the next move.
+
 The agent can make a few lines (recommended 1-3) of reasoning before deciding the next move.
+
 The game ends when one of the snakes dies by hitting a wall or another snake or after 100 turns.
+
 The game is played in a 15x15 grid board. x is the horizontal axis and goes from 0 to 14 left to right. y is the vertical axis and goes from 0 to 14 up to down.`;
 
   async function checkRoom(room_id: string) {
