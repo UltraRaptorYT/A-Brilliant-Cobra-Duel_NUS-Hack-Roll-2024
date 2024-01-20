@@ -12,7 +12,9 @@ interface MyDataType {
     turn_id: number;
     snake1action:string,
     snake2action:string,
-    snake1action:string,
+    snake1reason:string,
+    snake2reason:string,
+    boardState:string
     
   }
   
