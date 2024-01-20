@@ -247,11 +247,17 @@ export default function Game({game_id,round_id}: {game_id:string,round_id:number
       }
 
     console.log(boardState)
-    
-    const MakeAction = async (snake1Prompt:string,snake2Prompt:string,boardState:BoardStateType,turn:number,game_id:string,round_id:number) => {
-      
+
+    const MakeAction = async (snake1Prompt:string,snake2Prompt:string,boardState:BoardStateType,turn:number,game_id:string,round_id:number,gameOver:boolean) => {
+      if (gameOver || boardState.turn >= MAX_TURN) {
+        return setIsPlaying(false)
+      }
       var snake1PromptFormatted:string = formatPrompt(snake1Prompt,boardState);
       var snake2PromptFormatted:string = formatPrompt(snake2Prompt,boardState);
+
+      if (snake1PromptFormatted === "" || snake2PromptFormatted === "") {
+        return setIsPlaying(false)
+      }
 
       console.log("snake1PromptFormatted:",snake1PromptFormatted)
       console.log("snake2PromptFormatted:",snake2PromptFormatted)
@@ -264,21 +270,22 @@ export default function Game({game_id,round_id}: {game_id:string,round_id:number
   
           body: JSON.stringify({ snake1Prompt: snake1PromptFormatted, snake2Prompt: snake2PromptFormatted, boardState: boardState, turn: turn, game_id: game_id, round_id: round_id })
         });
-        
+
         const  { action1, reason1, action2, reason2 } = await response.json();
         
         console.log(`SNAKE 1: ${action1} ${reason1}`)
         console.log(`SNAKE 2: ${action2} ${reason2}`)
-        
+
         moveDirection("snake1", action1);
         moveDirection("snake2", action2);
+
         setIsPlaying(true);
 
         // turn++;
         setTurn(turn + 1);
       }
-
-      MakeAction(snake1Prompt,snake2Prompt,boardState,turn,game_id,round_id)
+      
+      MakeAction(snake1Prompt,snake2Prompt,boardState,turn,game_id,round_id,gameOver)
 
 
     }  

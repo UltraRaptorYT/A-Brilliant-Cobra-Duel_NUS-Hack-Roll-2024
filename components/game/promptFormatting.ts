@@ -34,11 +34,45 @@ import { PosType, SnakeType, BoardStateType, Direction } from "./gameTypes";
 // };
 // Create funcitons to transform BoardState to LLM Promptable string
 
+function checkEndGame(boardState: BoardStateType): boolean {
+  // Check if head of the snake is out of bounds
+  if (boardState.snake1.body[0][0] < 0 || boardState.snake1.body[0][0] > 14 || boardState.snake1.body[0][1] < 0 || boardState.snake1.body[0][1] > 14) {
+    return true;
+  }
+  if (boardState.snake2.body[0][0] < 0 || boardState.snake2.body[0][0] > 14 || boardState.snake2.body[0][1] < 0 || boardState.snake2.body[0][1] > 14) {
+    return true;
+  }
+  // Check if head of the snake is on the body of the snake
+  for (let i = 1; i < boardState.snake1.body.length; i++) {
+    if (boardState.snake1.body[0][0] === boardState.snake1.body[i][0] && boardState.snake1.body[0][1] === boardState.snake1.body[i][1]) {
+      return true;
+    }
+  }
+  for (let i = 1; i < boardState.snake2.body.length; i++) {
+    if (boardState.snake2.body[0][0] === boardState.snake2.body[i][0] && boardState.snake2.body[0][1] === boardState.snake2.body[i][1]) {
+      return true;
+    }
+  }
+  // Check if head of the snake is on the body of the other snake
+  for (let i = 0; i < boardState.snake2.body.length; i++) {
+    if (boardState.snake1.body[0][0] === boardState.snake2.body[i][0] && boardState.snake1.body[0][1] === boardState.snake2.body[i][1]) {
+      return true;
+    }
+  }
+  for (let i = 0; i < boardState.snake1.body.length; i++) {
+    if (boardState.snake2.body[0][0] === boardState.snake1.body[i][0] && boardState.snake2.body[0][1] === boardState.snake1.body[i][1]) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export function toEmoji_board(boardState:BoardStateType): string {
   // ⬜- empty, 🟩- snake1,🟢- snake1Head, 🔵- snake2head 🟦- snake2, 🍎- food
   // Create Empty board of size 15x15
   let emojiBoard = Array.from(Array(15), () => new Array(15).fill("⬜"));
-
+  
   // Add snake1 Head to the board
   emojiBoard[boardState.snake1.body[0][1]][boardState.snake1.body[0][0]] = "🟢";
   // Add snake1 body to the board
@@ -103,30 +137,37 @@ export function toBoard_state_str(boardState:BoardStateType):string{
 
 
 export function formatPrompt(content:string,boardState:BoardStateType):string {
-  // Format userPrompt to be ready for OpenAI API
-  const extractString:string[] = ["{Emoji_board}", "{Chars_board}", "{Board_state_str}"];
 
-  
-  // string regrex for function names
-  for (let i = 0; i < extractString.length; i++) {
-    let regrex = new RegExp(extractString[i], "g");
-    
-    // If match, replace 
-    if (content.match(regrex)) {
+  try {
+      // Format userPrompt to be ready for OpenAI API
+      const extractString:string[] = ["{Emoji_board}", "{Chars_board}", "{Board_state_str}"];
 
-      switch (extractString[i]) {
-        case "{Emoji_board}":
-          content = content.replace(regrex, "\n"+toEmoji_board(boardState)+"\n");
-          break;
-        case "{Chars_board}":
-          content = content.replace(regrex, "\n"+toChars_board(boardState)+"\n");
-          break;
-        case "{Board_state_str}":
-          content = content.replace(regrex, "\n"+toBoard_state_str(boardState)+"\n");
-          break;
+      
+      // string regrex for function names
+      for (let i = 0; i < extractString.length; i++) {
+        let regrex = new RegExp(extractString[i], "g");
+        
+        // If match, replace 
+        if (content.match(regrex)) {
+
+          switch (extractString[i]) {
+            case "{Emoji_board}":
+              content = content.replace(regrex, "\n"+toEmoji_board(boardState)+"\n");
+              break;
+            case "{Chars_board}":
+              content = content.replace(regrex, "\n"+toChars_board(boardState)+"\n");
+              break;
+            case "{Board_state_str}":
+              content = content.replace(regrex, "\n"+toBoard_state_str(boardState)+"\n");
+              break;
+          }
+        }
       }
-    }
+      return content;
   }
-  return content;
+  catch (error) {
+      console.log(error);
+      return "";
+  }
 
 }
