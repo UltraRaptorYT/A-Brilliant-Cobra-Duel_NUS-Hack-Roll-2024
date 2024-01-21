@@ -29,7 +29,7 @@ interface HistoryList {
       // and the `select` method to specify the columns you want to fetch.
 
       let { data, error } = await supabase
-        .from<HistoryList>('abcd_turn')
+        .from('abcd_turn')
         .select('*').eq('game_id',game_id)
     
       // Step 4: Use a try-catch block to handle any errors that might occur during the fetch.
