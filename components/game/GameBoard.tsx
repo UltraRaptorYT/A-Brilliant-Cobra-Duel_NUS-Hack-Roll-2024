@@ -8,7 +8,7 @@ import Food from "./Food";
 export default function GameBoard({ size, board, boardState }: GameBoardProps) {
   return (
     <div
-      className={cn(`grid relative order-1 md:order-2`)}
+      className={cn(`grid relative order-1 md:order-2 w-fit mx-auto`)}
       style={{
         gridTemplateColumns: `repeat(${size}, clamp(20px,5vw,35px))`,
       }}

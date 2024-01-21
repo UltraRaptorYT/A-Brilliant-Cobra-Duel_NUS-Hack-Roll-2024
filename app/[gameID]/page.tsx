@@ -29,6 +29,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BoardStateType } from "@/components/game/gameTypes";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { ImCross, ImCheckmark } from "react-icons/im";
 
 type GameTypeParams = {
   params: {
@@ -86,7 +96,7 @@ export default function GameRoom({ params }: GameTypeParams) {
     {Emojis_board}
     
     and this is the board state in JSON, positions are in (x, y) format, the game board size is 15 by 15, x goes from 0 to 14 left to right and y goes 0 to 14 up to down: 
-    {board_state_str}
+    {Board_state_str}
     
     The snake dir parameter is the first letter of the previous chosen direction of the snake, if you chose an opposite direction you will die as you will collide with your own body.
     You have to shortly reason your next move in 1-3 lines and then always add one of the following Characters: U, D, L, R (for <up>, <down>, <left> and <right>) to chose the direction of your next move.`,
@@ -523,7 +533,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
           </Button>
         </div>
         <div className="flex text-lg gap-4 items-center">
-          Score:
+          Score [P1-P2]:
           <div className="flex text-bold text-xl gap-1">
             <span className="font-bold">0</span>
             <span>-</span>
@@ -574,7 +584,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
                           <Card
                             key={`storyPrompt_${idx}`}
                             onClick={() => setCurrentPrompt(val)}
-                            className="w-[150px] max-h-[100px] h-[75px] text-ellipsis"
+                            className="w-[450px] max-h-[100px] h-[75px] text-ellipsis"
                           >
                             <CardContent className="p-4">
                               <p className="text-xs">{val}</p>
@@ -583,7 +593,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
                         );
                       })}
                     </div>
-                    <div className="flex gap-4 justify-around">
+                    <div className="flex gap-10 justify-center items-center">
                       <div className="flex flex-col gap-2">
                         <h1 className="text-center font-semibold underline">
                           Helper Functions
@@ -611,7 +621,86 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
                           })}
                         </div>
                       </div>
-                      {/* <div>hi</div> */}
+                      <div>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead
+                                className={cn(
+                                  playerData.player1.user_id == userID
+                                    ? "text-green-500 dark:text-green-500"
+                                    : "text-blue-500 dark:text-blue-500"
+                                )}
+                              >
+                                You [
+                                {playerData.player1.user_id == userID
+                                  ? "P1"
+                                  : "P2"}
+                                ]
+                              </TableHead>
+                              <TableHead
+                                className={cn(
+                                  playerData.player1.user_id == userID
+                                    ? "text-blue-500 dark:text-blue-500"
+                                    : "text-green-500 dark:text-green-500"
+                                )}
+                              >
+                                Opponent [
+                                {playerData.player1.user_id == userID
+                                  ? "P2"
+                                  : "P1"}
+                                ]
+                              </TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            <TableRow>
+                              <TableCell className="font-medium text-center">
+                                {playerData.player1.user_id == userID ? (
+                                  playerData.player1.prompt != "" ? (
+                                    <div className={"text-green-500 mx-auto w-fit"}>
+                                      <ImCheckmark />
+                                    </div>
+                                  ) : (
+                                    <div className={"text-red-500 mx-auto w-fit"}>
+                                      <ImCross />
+                                    </div>
+                                  )
+                                ) : playerData.player2.prompt != "" ? (
+                                  <div className={"text-green-500 mx-auto w-fit"}>
+                                    <ImCheckmark />
+                                  </div>
+                                ) : (
+                                  <div className={"text-red-500 mx-auto w-fit"}>
+                                    <ImCross />
+                                  </div>
+                                )}
+                              </TableCell>
+                              <TableCell className="font-medium text-center">
+                                {playerData.player1.user_id == userID ? (
+                                  playerData.player2.prompt != "" ? (
+                                    <div className={"text-green-500 mx-auto w-fit"}>
+                                      <ImCheckmark />
+                                    </div>
+                                  ) : (
+                                    <div className={"text-red-500 mx-auto w-fit"}>
+                                      <ImCross />
+                                    </div>
+                                  )
+                                ) : playerData.player1.prompt != "" ? (
+                                  <div className={"text-green-500 mx-auto w-fit"}>
+                                    <ImCheckmark />
+                                  </div>
+                                ) : (
+                                  <div className={"text-red-500 mx-auto w-fit"}>
+                                    <ImCross />
+                                  </div>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
