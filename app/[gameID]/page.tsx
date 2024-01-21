@@ -40,6 +40,13 @@ import {
 } from "@/components/ui/table";
 import { ImCross, ImCheckmark } from "react-icons/im";
 
+const mapDirection = {
+  U: "⬆️",
+  L: "⬅️",
+  R: "➡️",
+  D: "⬇️",
+};
+
 type GameTypeParams = {
   params: {
     gameID: string;
@@ -80,6 +87,17 @@ let initialState: BoardStateType = {
   food: [[7, 7]],
 };
 
+type HistoryList = {
+  game_id: string;
+  round_id: number;
+  turn_id: number;
+  snake1action: "U" | "D" | "L" | "R";
+  snake2action: "U" | "D" | "L" | "R";
+  snake1reason: string;
+  snake2reason: string;
+  boardState: string;
+};
+
 export default function GameRoom({ params }: GameTypeParams) {
   const { toast } = useToast();
   const [channel, setChannel] = useState<RealtimeChannel>();
@@ -91,6 +109,8 @@ export default function GameRoom({ params }: GameTypeParams) {
   const [accordionVal, setAccordionVal] = useState<string>("");
   const [gameReady, setGameReady] = useState<boolean>(false);
   const [updateState, setUpdateState] = useState<BoardStateType>(initialState);
+  const [p1Score, setP1Score] = useState<number>(0);
+  const [p2Score, setP2Score] = useState<number>(0);
   const [storyPrompt, setStoryPrompt] = useState<string[]>([
     `You are the snake1, which is the color green. Your opponent is the snake2 with color blue. This is the game board in emojis where heads are rounds, bodies are squares and food is an apple: 
     {Emojis_board}
@@ -114,7 +134,7 @@ export default function GameRoom({ params }: GameTypeParams) {
     3. Chose the direction to move on cell closer to the food, check if you will die/lose there and if so chose another direction
     4. Finally output the emoji for the direction you chose`,
   ]);
-  const [historyData, setHistoryData] = useState<string[]>([]);
+  const [historyData, setHistoryData] = useState<HistoryList[]>([]);
   const [currentPrompt, setCurrentPrompt] = useState<string>("");
   const fixedPromptAdd: string[] = [
     "{Emojis_board}",
@@ -240,6 +260,43 @@ The agent can make a few lines (recommended 1-3) of reasoning before deciding th
 The game ends when one of the snakes dies by hitting a wall or another snake or after 100 turns.
 
 The game is played in a 15x15 grid board. x is the horizontal axis and goes from 0 to 14 left to right. y is the vertical axis and goes from 0 to 14 up to down.`;
+
+  async function getHistoryData() {
+    const response = await fetch(
+      `${
+        process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+      }/api/supabase`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          game_id: gameID,
+        }),
+      }
+    );
+    const data = await response.json();
+    setHistoryData(data);
+  }
+
+  useEffect(() => {
+    getHistoryData();
+    getScore();
+  }, []);
+
+  async function getScore() {
+    const { data, error } = await supabase
+      .from("abcd_round")
+      .select("winner")
+      .eq("game_id", gameID);
+    if (error) {
+      return console.log(error);
+    }
+    setP1Score(
+      [...data].filter((x: { winner: "P1" | "P2" }) => x.winner == "P1").length
+    );
+    setP2Score(
+      [...data].filter((x: { winner: "P1" | "P2" }) => x.winner == "P2").length
+    );
+  }
 
   async function checkRoom(room_id: string) {
     const { data, error } = await supabase
@@ -535,9 +592,9 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
         <div className="flex text-lg gap-4 items-center">
           Score [P1-P2]:
           <div className="flex text-bold text-xl gap-1">
-            <span className="font-bold">0</span>
+            <span className="font-bold">{p1Score}</span>
             <span>-</span>
-            <span className="font-bold">0</span>
+            <span className="font-bold">{p2Score}</span>
           </div>
         </div>
       </div>
@@ -658,16 +715,22 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
                               <TableCell className="font-medium text-center">
                                 {playerData.player1.user_id == userID ? (
                                   playerData.player1.prompt != "" ? (
-                                    <div className={"text-green-500 mx-auto w-fit"}>
+                                    <div
+                                      className={"text-green-500 mx-auto w-fit"}
+                                    >
                                       <ImCheckmark />
                                     </div>
                                   ) : (
-                                    <div className={"text-red-500 mx-auto w-fit"}>
+                                    <div
+                                      className={"text-red-500 mx-auto w-fit"}
+                                    >
                                       <ImCross />
                                     </div>
                                   )
                                 ) : playerData.player2.prompt != "" ? (
-                                  <div className={"text-green-500 mx-auto w-fit"}>
+                                  <div
+                                    className={"text-green-500 mx-auto w-fit"}
+                                  >
                                     <ImCheckmark />
                                   </div>
                                 ) : (
@@ -679,16 +742,22 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
                               <TableCell className="font-medium text-center">
                                 {playerData.player1.user_id == userID ? (
                                   playerData.player2.prompt != "" ? (
-                                    <div className={"text-green-500 mx-auto w-fit"}>
+                                    <div
+                                      className={"text-green-500 mx-auto w-fit"}
+                                    >
                                       <ImCheckmark />
                                     </div>
                                   ) : (
-                                    <div className={"text-red-500 mx-auto w-fit"}>
+                                    <div
+                                      className={"text-red-500 mx-auto w-fit"}
+                                    >
                                       <ImCross />
                                     </div>
                                   )
                                 ) : playerData.player1.prompt != "" ? (
-                                  <div className={"text-green-500 mx-auto w-fit"}>
+                                  <div
+                                    className={"text-green-500 mx-auto w-fit"}
+                                  >
                                     <ImCheckmark />
                                   </div>
                                 ) : (
@@ -773,32 +842,41 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
                           className="min-w-[300px] w-full max-w-[800px]"
                         >
                           <AccordionItem
-                            value="item-1"
+                            value={"item-1"}
                             className="rounded-lg border-2"
                           >
                             <AccordionTrigger
                               className={cn(
-                                accordionVal ? "border-b" : "",
                                 "px-4 no-underline hover:no-underline text-base"
                               )}
                             >
-                              Game 1
+                              {"Round" + 1}
                             </AccordionTrigger>
-                            <AccordionContent className="py-4 px-4"></AccordionContent>
-                          </AccordionItem>
-                          <AccordionItem
-                            value="item-2"
-                            className="rounded-lg border-2"
-                          >
-                            <AccordionTrigger
-                              className={cn(
-                                accordionVal ? "border-b" : "",
-                                "px-4 no-underline hover:no-underline text-base"
-                              )}
-                            >
-                              Game 1
-                            </AccordionTrigger>
-                            <AccordionContent className="py-4 px-4"></AccordionContent>
+                            <AccordionContent className="py-4 px-4 flex flex-col gap-3">
+                              {historyData.map((val, idx) => {
+                                return (
+                                  <Card className="" key={"card_" + idx}>
+                                    <CardHeader>
+                                      <CardTitle>Turn {val.turn_id}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="p-4 flex flex-col gap-4">
+                                      <p className="text-sm">
+                                        Snake 1:{" "}
+                                        {mapDirection[val.snake1action]}
+                                        <br />
+                                        Reason: {val.snake1reason}
+                                      </p>
+                                      <p className="text-sm">
+                                        Snake 2:{" "}
+                                        {mapDirection[val.snake2action]}
+                                        <br />
+                                        Reason: {val.snake2reason}
+                                      </p>
+                                    </CardContent>
+                                  </Card>
+                                );
+                              })}
+                            </AccordionContent>
                           </AccordionItem>
                         </Accordion>
                       </AccordionContent>

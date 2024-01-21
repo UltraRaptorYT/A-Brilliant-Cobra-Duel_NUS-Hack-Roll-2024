@@ -35,6 +35,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import supabase from "@/lib/supabase";
 
 type TurnData = {
   action1: "U" | "D" | "L" | "R";
@@ -84,6 +85,17 @@ export default function Game({
     setIsPlaying(gameState);
   }, [gameState]);
 
+  async function addWinner(winner: "P1" | "P2") {
+    const { error } = await supabase
+      .from("abcd_round")
+      .update({ winner: winner })
+      .eq("round_id", round_id)
+      .eq("game_id", game_id);
+    if (error) {
+      return console.log(error);
+    }
+  }
+
   useEffect(() => {
     console.log(updateState);
     setBoardState(updateState);
@@ -112,6 +124,7 @@ export default function Game({
       setShowModal(true);
       setGameOver(true);
       setIsPlaying(false);
+      addWinner("P2")
     }
 
     if (
@@ -137,6 +150,7 @@ export default function Game({
       setShowModal(true);
       setGameOver(true);
       setIsPlaying(false);
+      addWinner("P1");
     }
   }, [updateState]);
 
