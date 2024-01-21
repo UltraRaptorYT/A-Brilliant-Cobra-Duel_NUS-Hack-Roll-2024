@@ -331,6 +331,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
                 event: "gameStart",
                 payload: { state: true },
               });
+              setGameStart(true);
             } else {
               // alert(JSON.stringify(payload));
             }

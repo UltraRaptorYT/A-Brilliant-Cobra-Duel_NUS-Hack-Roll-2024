@@ -72,6 +72,10 @@ export default function Game({
   const [boardState, setBoardState] = useState<BoardStateType>(initBoardState);
   const [turn, setTurn] = useState<number>(0);
 
+  useEffect(() => {
+    setIsPlaying(gameState);
+  }, [gameState]);
+
   function placeFood(boardState: BoardStateType): PosType | undefined {
     let newFoodPos: PosType;
     let count = 0;
@@ -304,6 +308,7 @@ export default function Game({
         gameOver
       );
     }
+    console.log("HELLO", isPlaying);
   }, [isPlaying]);
 
   return (
