@@ -473,175 +473,190 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
         </div>
       </div>
 
-      {gameStart ? (
-        <Game round_id={roundID} game_id={gameID} gameState={gameStart} playerData={playerData} />
-      ) : (
+      {
         <div className="flex flex-col gap-4 w-full">
-          <Accordion
-            type="single"
-            collapsible
-            className="min-w-[300px] w-full max-w-[800px]"
-            value={accordionVal}
-            onValueChange={(val) => {
-              setAccordionVal(val);
-              localStorage.setItem("instruction", val);
-            }}
-          >
-            <AccordionItem value="item-1" className="rounded-lg border-2">
-              <AccordionTrigger
-                className={cn(
-                  accordionVal ? "border-b" : "",
-                  "px-4 no-underline hover:no-underline text-base"
-                )}
-              >
-                Instructions
-              </AccordionTrigger>
-              <AccordionContent className="py-4 px-4">
-                <Markdown>{instruction}</Markdown>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+          {!gameStart && (
+            <Accordion
+              type="single"
+              collapsible
+              className="min-w-[300px] w-full max-w-[800px]"
+              value={accordionVal}
+              onValueChange={(val) => {
+                setAccordionVal(val);
+                localStorage.setItem("instruction", val);
+              }}
+            >
+              <AccordionItem value="item-1" className="rounded-lg border-2">
+                <AccordionTrigger
+                  className={cn(
+                    accordionVal ? "border-b" : "",
+                    "px-4 no-underline hover:no-underline text-base"
+                  )}
+                >
+                  Instructions
+                </AccordionTrigger>
+                <AccordionContent className="py-4 px-4">
+                  <Markdown>{instruction}</Markdown>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          )}
           {gameReady ? (
             <>
-              <div className="flex flex-col gap-2">
-                <h1 className="text-center font-semibold underline">
-                  Sample Prompts
-                </h1>
-                <div className="flex overflow-auto gap-3 w-full h-full">
-                  {storyPrompt.map((val, idx) => {
-                    return (
-                      <Card
-                        key={`storyPrompt_${idx}`}
-                        onClick={() => setCurrentPrompt(val)}
-                        className="w-[150px] max-h-[100px] h-[75px] text-ellipsis"
-                      >
-                        <CardContent className="p-4">
-                          <p className="text-xs">{val}</p>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
-                </div>
-                <div className="flex gap-4 justify-around">
+              {!gameStart && (
+                <>
                   <div className="flex flex-col gap-2">
                     <h1 className="text-center font-semibold underline">
-                      Helper Functions
+                      Sample Prompts
                     </h1>
-                    <div className="flex gap-2 items-center justify-center">
-                      {fixedPromptAdd.map((val, idx) => {
+                    <div className="flex overflow-auto gap-3 w-full h-full">
+                      {storyPrompt.map((val, idx) => {
                         return (
-                          <Button
-                            key={`fixedPromptAdd_${idx}`}
-                            variant={"secondary"}
-                            className="text-xs w-fit overflow-hidden"
-                            onClick={() => {
-                              let addValue = `${val} `;
-                              setCurrentPrompt((prevState) => {
-                                if (prevState.endsWith(" ")) {
-                                  return prevState + addValue;
-                                }
-                                return prevState + " " + addValue;
-                              });
-                            }}
+                          <Card
+                            key={`storyPrompt_${idx}`}
+                            onClick={() => setCurrentPrompt(val)}
+                            className="w-[150px] max-h-[100px] h-[75px] text-ellipsis"
                           >
-                            {val}
-                          </Button>
+                            <CardContent className="p-4">
+                              <p className="text-xs">{val}</p>
+                            </CardContent>
+                          </Card>
                         );
                       })}
                     </div>
+                    <div className="flex gap-4 justify-around">
+                      <div className="flex flex-col gap-2">
+                        <h1 className="text-center font-semibold underline">
+                          Helper Functions
+                        </h1>
+                        <div className="flex gap-2 items-center justify-center">
+                          {fixedPromptAdd.map((val, idx) => {
+                            return (
+                              <Button
+                                key={`fixedPromptAdd_${idx}`}
+                                variant={"secondary"}
+                                className="text-xs w-fit overflow-hidden"
+                                onClick={() => {
+                                  let addValue = `${val} `;
+                                  setCurrentPrompt((prevState) => {
+                                    if (prevState.endsWith(" ")) {
+                                      return prevState + addValue;
+                                    }
+                                    return prevState + " " + addValue;
+                                  });
+                                }}
+                              >
+                                {val}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {/* <div>hi</div> */}
+                    </div>
                   </div>
-                  <div>hi</div>
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
-                <div className="grid w-full gap-1.5">
-                  <Label htmlFor="message">System Message</Label>
-                  <Textarea
-                    placeholder="Type System Message here."
-                    rows={8}
-                    value={systemMessage}
-                    disabled
-                  />
-                </div>
-                <div className="grid w-full gap-1.5">
-                  <Label htmlFor="message">Human Message</Label>
-                  <Textarea
-                    placeholder="Type Human Message here."
-                    rows={8}
-                    value={currentPrompt}
-                    onChange={(e) => setCurrentPrompt(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-center">
-                <CustomButton
-                  ready={ready}
-                  onClick={() => {
-                    setReady((prevState) => {
-                      if (currentPrompt.trim().length == 0) {
-                        toast({
-                          title: "Please include Human Message",
-                          duration: 1000,
-                          variant: "destructive",
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
+                    <div className="grid w-full gap-1.5">
+                      <Label htmlFor="message">System Message</Label>
+                      <Textarea
+                        placeholder="Type System Message here."
+                        rows={8}
+                        value={systemMessage}
+                        disabled
+                      />
+                    </div>
+                    <div className="grid w-full gap-1.5">
+                      <Label htmlFor="message">Human Message</Label>
+                      <Textarea
+                        placeholder="Type Human Message here."
+                        rows={8}
+                        value={currentPrompt}
+                        onChange={(e) => setCurrentPrompt(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-center">
+                    <CustomButton
+                      ready={ready}
+                      onClick={() => {
+                        setReady((prevState) => {
+                          if (currentPrompt.trim().length == 0) {
+                            toast({
+                              title: "Please include Human Message",
+                              duration: 1000,
+                              variant: "destructive",
+                            });
+                            return false;
+                          }
+                          let newState = !prevState;
+                          updateReady(newState);
+                          return newState;
                         });
-                        return false;
-                      }
-                      let newState = !prevState;
-                      updateReady(newState);
-                      return newState;
-                    });
-                  }}
-                ></CustomButton>
-              </div>
-              <div className="flex flex-col">
-                <Accordion
-                  type="multiple"
-                  className="min-w-[300px] w-full max-w-[800px]"
-                >
-                  <AccordionItem value="item-1" className="border-0">
-                    <AccordionTrigger className="no-underline hover:no-underline text-center text-xl pt-2">
-                      <div className="w-[16px] aspect-square"></div>
-                      View All History
-                    </AccordionTrigger>
-                    <AccordionContent className="px-4">
-                      <Accordion
-                        type="single"
-                        collapsible
-                        className="min-w-[300px] w-full max-w-[800px]"
-                      >
-                        <AccordionItem
-                          value="item-1"
-                          className="rounded-lg border-2"
+                      }}
+                    ></CustomButton>
+                  </div>
+                </>
+              )}
+              {channel && (
+                <Game
+                  round_id={roundID}
+                  game_id={gameID}
+                  gameState={gameStart}
+                  playerData={playerData}
+                  channel={channel}
+                />
+              )}
+              {!gameStart && (
+                <div className="flex flex-col">
+                  <Accordion
+                    type="multiple"
+                    className="min-w-[300px] w-full max-w-[800px]"
+                  >
+                    <AccordionItem value="item-1" className="border-0">
+                      <AccordionTrigger className="no-underline hover:no-underline text-center text-xl pt-2">
+                        <div className="w-[16px] aspect-square"></div>
+                        View All History
+                      </AccordionTrigger>
+                      <AccordionContent className="px-4">
+                        <Accordion
+                          type="single"
+                          collapsible
+                          className="min-w-[300px] w-full max-w-[800px]"
                         >
-                          <AccordionTrigger
-                            className={cn(
-                              accordionVal ? "border-b" : "",
-                              "px-4 no-underline hover:no-underline text-base"
-                            )}
+                          <AccordionItem
+                            value="item-1"
+                            className="rounded-lg border-2"
                           >
-                            Game 1
-                          </AccordionTrigger>
-                          <AccordionContent className="py-4 px-4"></AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem
-                          value="item-2"
-                          className="rounded-lg border-2"
-                        >
-                          <AccordionTrigger
-                            className={cn(
-                              accordionVal ? "border-b" : "",
-                              "px-4 no-underline hover:no-underline text-base"
-                            )}
+                            <AccordionTrigger
+                              className={cn(
+                                accordionVal ? "border-b" : "",
+                                "px-4 no-underline hover:no-underline text-base"
+                              )}
+                            >
+                              Game 1
+                            </AccordionTrigger>
+                            <AccordionContent className="py-4 px-4"></AccordionContent>
+                          </AccordionItem>
+                          <AccordionItem
+                            value="item-2"
+                            className="rounded-lg border-2"
                           >
-                            Game 1
-                          </AccordionTrigger>
-                          <AccordionContent className="py-4 px-4"></AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </div>
+                            <AccordionTrigger
+                              className={cn(
+                                accordionVal ? "border-b" : "",
+                                "px-4 no-underline hover:no-underline text-base"
+                              )}
+                            >
+                              Game 1
+                            </AccordionTrigger>
+                            <AccordionContent className="py-4 px-4"></AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </div>
+              )}
             </>
           ) : (
             <div className="text-xl text-center py-10">
@@ -649,7 +664,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
             </div>
           )}
         </div>
-      )}
+      }
     </main>
   );
 }

@@ -55,6 +55,9 @@ export default function Home() {
       });
       return;
     }
+    if (gameID.includes(process.env.NEXT_PUBLIC_SITE_URL ?? "")) {
+      gameID = gameID.replace(process.env.NEXT_PUBLIC_SITE_URL ?? "", "");
+    }
     const { data, error } = await supabase
       .from("abcd_game_user")
       .select()

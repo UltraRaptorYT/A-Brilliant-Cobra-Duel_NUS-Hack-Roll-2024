@@ -1,6 +1,7 @@
 import GameBoard from "./GameBoard";
 import { useState, useEffect } from "react";
 
+import { RealtimeChannel } from "@supabase/supabase-js";
 import {
   PosType,
   SnakeType,
@@ -42,7 +43,7 @@ const initBoardState: BoardStateType = {
     dirArr: ["L", "L", "L", "L"],
     isAlive: true,
   },
-  food: [[1, 2]],
+  food: [[7, 7]],
 };
 
 // TESTING PURPOSES ONLY
@@ -52,6 +53,7 @@ export default function Game({
   round_id,
   gameState,
   playerData,
+  channel,
 }: {
   game_id: string;
   round_id: number;
@@ -60,6 +62,7 @@ export default function Game({
     player1: { user_id: string; prompt: string };
     player2: { user_id: string; prompt: string };
   };
+  channel: RealtimeChannel;
 }) {
   const size = 15;
   const MAX_TURN = 100;
