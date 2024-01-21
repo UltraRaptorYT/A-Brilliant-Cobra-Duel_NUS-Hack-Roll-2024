@@ -28,6 +28,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { BoardStateType } from "@/components/game/gameTypes";
 
 type GameTypeParams = {
   params: {
@@ -35,14 +36,38 @@ type GameTypeParams = {
   };
 };
 
-function generateRoundID() {
-  // Generate a random number between 1000000000 and 9999999999 (inclusive)
-  return Math.floor(Math.random() * 9000000000) + 1000000000;
-}
-
 type PlayerData = {
   user_id: string;
   prompt: string;
+};
+
+let initialState: BoardStateType = {
+  turn: 0,
+  snake1: {
+    body: [
+      [5, 2],
+      [4, 2],
+      [3, 2],
+      [2, 2],
+    ],
+    dir: "R",
+    prevDir: "R",
+    dirArr: ["R", "R", "R", "R"],
+    isAlive: true,
+  },
+  snake2: {
+    body: [
+      [9, 12],
+      [10, 12],
+      [11, 12],
+      [12, 12],
+    ],
+    dir: "L",
+    prevDir: "L",
+    dirArr: ["L", "L", "L", "L"],
+    isAlive: true,
+  },
+  food: [[7, 7]],
 };
 
 export default function GameRoom({ params }: GameTypeParams) {
@@ -50,11 +75,12 @@ export default function GameRoom({ params }: GameTypeParams) {
   const [channel, setChannel] = useState<RealtimeChannel>();
   const router = useRouter();
   const [userID, setUserID] = useState<string>("");
-  const [roundID, setRoundID] = useState<number>(generateRoundID());
+  const [roundID, setRoundID] = useState<number>(1);
   const gameID = params.gameID;
   const [gameStart, setGameStart] = useState<boolean>(false);
   const [accordionVal, setAccordionVal] = useState<string>("");
   const [gameReady, setGameReady] = useState<boolean>(false);
+  const [updateState, setUpdateState] = useState<BoardStateType>(initialState);
   const [storyPrompt, setStoryPrompt] = useState<string[]>([
     `You are the snake1, which is the color green. Your opponent is the snake2 with color blue. This is the game board in emojis where heads are rounds, bodies are squares and food is an apple: 
     {Emojis_board}
@@ -245,6 +271,23 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
     }
   }
 
+  async function addRound() {
+    const { error } = await supabase.from("abcd_round").insert({
+      round_id: roundID,
+      game_id: gameID,
+      p1_id: playerData.player1.user_id,
+      p2_id: playerData.player2.user_id,
+    });
+    if (error) {
+      console.log(error);
+      return;
+    }
+  }
+
+  useEffect(() => {
+    addRound();
+  }, [gameStart]);
+
   useEffect(() => {
     if (gameID && userID) {
       const channel = supabase.channel(`${gameID}_room`, {
@@ -292,6 +335,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
           setGameReady(false);
           setGameStart(false);
           setCurrentPrompt("");
+          setUpdateState(initialState);
           setPlayerData(() => {
             let output = {
               player1: { user_id: "", prompt: "" },
@@ -305,7 +349,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
         .on(
           "broadcast",
           { event: "gameStart" },
-          ({ payload }: { payload: { state: boolean } }) => {
+          async ({ payload }: { payload: { state: boolean } }) => {
             console.log(payload);
             setGameStart(payload.state);
           }
@@ -336,6 +380,14 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
               // alert(JSON.stringify(payload));
             }
           }
+        )
+        .on(
+          "broadcast",
+          { event: "updateState" },
+          ({ payload }: { payload: BoardStateType }) => {
+            console.log(payload);
+            setUpdateState(payload);
+          }
         );
 
       channel.subscribe(async (status) => {
@@ -356,7 +408,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
   }, [gameID, userID]);
 
   async function checkRound() {
-    const error = true;
+    var mainError = true;
     do {
       const { data, error } = await supabase
         .from("abcd_round")
@@ -365,9 +417,15 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
         .eq("round_id", roundID);
       if (error) {
         console.log(error);
-        setRoundID(generateRoundID());
+        mainError = true;
       }
-    } while (error);
+      if (data?.length == 1) {
+        setRoundID((prev) => prev + 1);
+        mainError = true;
+      } else {
+        mainError = false;
+      }
+    } while (mainError);
   }
 
   async function updateReady(gameState: boolean) {
@@ -444,7 +502,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
   }, []);
 
   return (
-    <main className="flex min-h-[100dvh] flex-col items-center py-8 px-4 w-full min-w-[300px] max-w-[800px] mx-auto gap-4">
+    <main className="flex min-h-[100dvh] flex-col items-center py-8 px-4 w-full min-w-[300px] max-w-[850px] mx-auto gap-4">
       <div className="flex gap-4 items-center justify-around w-full">
         <div className="text-xl flex gap-4 items-center justify-between">
           Game Code: <span className="font-bold">{gameID}</span>
@@ -605,6 +663,7 @@ The game is played in a 15x15 grid board. x is the horizontal axis and goes from
                   gameState={gameStart}
                   playerData={playerData}
                   channel={channel}
+                  updateState={updateState}
                 />
               )}
               {!gameStart && (

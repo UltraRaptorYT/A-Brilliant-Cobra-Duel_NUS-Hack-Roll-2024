@@ -1,5 +1,6 @@
 import GameBoard from "./GameBoard";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 import { RealtimeChannel } from "@supabase/supabase-js";
 import {
@@ -17,36 +18,38 @@ import {
   formatPrompt,
 } from "./promptFormatting";
 
-const initBoardState: BoardStateType = {
-  turn: 0,
-  snake1: {
-    body: [
-      [5, 2],
-      [4, 2],
-      [3, 2],
-      [2, 2],
-    ],
-    dir: "R",
-    prevDir: "R",
-    dirArr: ["R", "R", "R", "R"],
-    isAlive: true,
-  },
-  snake2: {
-    body: [
-      [9, 12],
-      [10, 12],
-      [11, 12],
-      [12, 12],
-    ],
-    dir: "L",
-    prevDir: "L",
-    dirArr: ["L", "L", "L", "L"],
-    isAlive: true,
-  },
-  food: [[7, 7]],
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+type TurnData = {
+  action1: "U" | "D" | "L" | "R";
+  action2: "U" | "D" | "L" | "R";
+  reason1: string;
+  reason2: string;
+  turn: number;
 };
 
-// TESTING PURPOSES ONLY
+const mapDirection = {
+  U: "⬆️",
+  L: "⬅️",
+  R: "➡️",
+  D: "⬇️",
+};
 
 export default function Game({
   game_id,
@@ -54,6 +57,7 @@ export default function Game({
   gameState,
   playerData,
   channel,
+  updateState,
 }: {
   game_id: string;
   round_id: number;
@@ -63,18 +67,78 @@ export default function Game({
     player2: { user_id: string; prompt: string };
   };
   channel: RealtimeChannel;
+  updateState: BoardStateType;
 }) {
   const size = 15;
   const MAX_TURN = 100;
   const [isPlaying, setIsPlaying] = useState<boolean>(gameState);
   const [gameOver, setGameOver] = useState<boolean>(false);
   const [board, setBoard] = useState<number[][]>([]);
-  const [boardState, setBoardState] = useState<BoardStateType>(initBoardState);
+  const [boardState, setBoardState] = useState<BoardStateType>(updateState);
   const [turn, setTurn] = useState<number>(0);
+  const [showModal, setShowModal] = useState<boolean>(false);
+  const [modalText, setModalText] = useState<string>("");
+  const [turnData, setTurnData] = useState<TurnData[]>([]);
 
   useEffect(() => {
     setIsPlaying(gameState);
   }, [gameState]);
+
+  useEffect(() => {
+    console.log(updateState);
+    setBoardState(updateState);
+    setIsPlaying(false);
+    // Game Over
+    if (
+      updateState.snake2.body.some((e) => {
+        return (
+          e[0] == updateState.snake1.body[0][0] &&
+          e[1] == updateState.snake1.body[0][1]
+        );
+      }) ||
+      updateState.snake1.body.slice(1).some((e) => {
+        return (
+          e[0] == updateState.snake1.body[0][0] &&
+          e[1] == updateState.snake1.body[0][1]
+        );
+      }) ||
+      updateState.snake1.body[0][0] < 0 ||
+      updateState.snake1.body[0][1] < 0 ||
+      updateState.snake1.body[0][0] > size ||
+      updateState.snake1.body[0][1] > size
+    ) {
+      updateState.snake1.isAlive = false;
+      setModalText("Player 2 [Blue Snake] for winning");
+      setShowModal(true);
+      setGameOver(true);
+      setIsPlaying(false);
+    }
+
+    if (
+      updateState.snake1.body.some((e) => {
+        return (
+          e[0] == updateState.snake2.body[0][0] &&
+          e[1] == updateState.snake2.body[0][1]
+        );
+      }) ||
+      updateState.snake2.body.slice(1).some((e) => {
+        return (
+          e[0] == updateState.snake2.body[0][0] &&
+          e[1] == updateState.snake2.body[0][1]
+        );
+      }) ||
+      updateState.snake2.body[0][0] < 0 ||
+      updateState.snake2.body[0][1] < 0 ||
+      updateState.snake2.body[0][0] > size ||
+      updateState.snake2.body[0][1] > size
+    ) {
+      updateState.snake2.isAlive = false;
+      setModalText("Player 1 [Green Snake] for winning");
+      setShowModal(true);
+      setGameOver(true);
+      setIsPlaying(false);
+    }
+  }, [updateState]);
 
   function placeFood(boardState: BoardStateType): PosType | undefined {
     let newFoodPos: PosType;
@@ -157,6 +221,7 @@ export default function Game({
       board.push(new Array(size).fill(0));
     }
     setBoard(board);
+    setShowModal(false);
   }, []);
 
   // useEffect(() => {
@@ -167,78 +232,42 @@ export default function Game({
     if (isPlaying) {
       moveSnake(boardState, boardState.snake1);
       moveSnake(boardState, boardState.snake2);
-
-      setIsPlaying(false);
-      // Game Over
-      if (
-        boardState.snake2.body.some((e) => {
-          return (
-            e[0] == boardState.snake1.body[0][0] &&
-            e[1] == boardState.snake1.body[0][1]
-          );
-        }) ||
-        boardState.snake1.body.slice(1).some((e) => {
-          return (
-            e[0] == boardState.snake1.body[0][0] &&
-            e[1] == boardState.snake1.body[0][1]
-          );
-        }) ||
-        boardState.snake1.body[0][0] < 0 ||
-        boardState.snake1.body[0][1] < 0 ||
-        boardState.snake1.body[0][0] > size ||
-        boardState.snake1.body[0][1] > size
-      ) {
-        boardState.snake1.isAlive = false;
-        alert("P2 Win");
-        setGameOver(true);
-      }
-
-      if (
-        boardState.snake1.body.some((e) => {
-          return (
-            e[0] == boardState.snake2.body[0][0] &&
-            e[1] == boardState.snake2.body[0][1]
-          );
-        }) ||
-        boardState.snake2.body.slice(1).some((e) => {
-          return (
-            e[0] == boardState.snake2.body[0][0] &&
-            e[1] == boardState.snake2.body[0][1]
-          );
-        }) ||
-        boardState.snake2.body[0][0] < 0 ||
-        boardState.snake2.body[0][1] < 0 ||
-        boardState.snake2.body[0][0] > size ||
-        boardState.snake2.body[0][1] > size
-      ) {
-        boardState.snake2.isAlive = false;
-        alert("P1 Win");
-        setGameOver(true);
-      }
     }
   }, [boardState]);
 
   useEffect(() => {
     if (isPlaying) {
-      // while (!gameOver && boardState.turn < MAX_TURN) {
-      setBoardState((prevState) => ({
-        ...prevState,
-        turn: prevState["turn"]++,
-      }));
-      if (boardState.food.length < 2) {
-        let newFoodPos: PosType | undefined = placeFood(boardState);
+      let currentBoardState = boardState;
+      currentBoardState = {
+        ...currentBoardState,
+        turn: currentBoardState.turn++,
+      };
+      channel.send({
+        type: "broadcast",
+        event: "updateState",
+        payload: boardState,
+      });
+      if (currentBoardState.food.length < 2) {
+        let newFoodPos: PosType | undefined = placeFood(currentBoardState);
         if (newFoodPos !== undefined) {
-          setBoardState((prevState) => {
-            const updatedFood = [...prevState.food, newFoodPos as PosType];
-            return {
-              ...prevState,
-              food: updatedFood,
-            };
+          const updatedFood = [
+            ...currentBoardState.food,
+            newFoodPos as PosType,
+          ];
+          currentBoardState = {
+            ...currentBoardState,
+            food: updatedFood,
+          };
+          console.log(updatedFood);
+          channel.send({
+            type: "broadcast",
+            event: "updateTurn",
+            payload: currentBoardState,
           });
         }
       }
 
-      console.log(boardState);
+      console.log(currentBoardState);
 
       const MakeAction = async (
         snake1Prompt: string,
@@ -268,6 +297,9 @@ export default function Game({
         console.log("snake1PromptFormatted:", snake1PromptFormatted);
         console.log("snake2PromptFormatted:", snake2PromptFormatted);
 
+        if (playerData.player2.user_id == localStorage.getItem("user_id")) {
+          return;
+        }
         const response = await fetch("/api/llm", {
           method: "POST",
           headers: {
@@ -289,6 +321,17 @@ export default function Game({
         console.log(`SNAKE 1: ${action1} ${reason1} ${boardState.turn}`);
         console.log(`SNAKE 2: ${action2} ${reason2} ${boardState.turn}`);
 
+        setTurnData((prevState) => [
+          ...prevState,
+          {
+            action1,
+            action2,
+            reason1,
+            reason2,
+            turn: boardState.turn,
+          },
+        ]);
+
         moveDirection("snake1", action1);
         moveDirection("snake2", action2);
 
@@ -296,12 +339,17 @@ export default function Game({
 
         // turn++;
         setTurn(turn + 1);
+        channel.send({
+          type: "broadcast",
+          event: "updateTurn",
+          payload: currentBoardState,
+        });
       };
 
       MakeAction(
         playerData.player1.prompt,
         playerData.player2.prompt,
-        boardState,
+        currentBoardState,
         turn,
         game_id,
         round_id,
@@ -313,7 +361,66 @@ export default function Game({
 
   return (
     <>
-      <GameBoard size={size} board={board} boardState={boardState}></GameBoard>
+      <div className="grid grid-cols-1 md:grid-cols-[150px_1fr_150px] gap-4 items-start">
+        <div className="flex flex-col w-[150px] gap-3 h-[75dvh] overflow-auto order-2 md:order-1">
+          {turnData.map((val: TurnData, idx) => {
+            return (
+              <Card key={"player1_" + idx}>
+                <CardHeader className="p-3">
+                  <CardTitle className="text-lg">
+                    Turn {val.turn} - {mapDirection[val.action1]}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 pt-0">
+                  <p className="text-sm">{val.reason1}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+        <GameBoard
+          size={size}
+          board={board}
+          boardState={boardState}
+        ></GameBoard>
+        <div className="flex flex-col w-[150px] gap-3 h-[75dvh] overflow-auto order-3">
+          {turnData.map((val: TurnData, idx) => {
+            return (
+              <Card key={"player2_" + idx}>
+                <CardHeader className="p-3">
+                  <CardTitle className="text-lg">
+                    Turn {val.turn} - {mapDirection[val.action2]}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 pt-0">
+                  <p className="text-sm">{val.reason2}</p>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      </div>
+      <Dialog
+        open={showModal}
+        onOpenChange={() => {
+          setShowModal((prev) => !prev);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader className="sm:text-center gap-4">
+            <DialogTitle>Congratulations to {modalText}</DialogTitle>
+            <DialogDescription>
+              <Button
+                onClick={() => {
+                  location.reload();
+                }}
+              >
+                Play Again?
+              </Button>
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
