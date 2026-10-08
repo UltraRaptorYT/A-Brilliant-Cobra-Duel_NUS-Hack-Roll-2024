@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Toaster } from "@/components/ui/toaster";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
   title: "A Brilliant Cobra Duel",
-  description: "Snake GPT Arena",
+  description:
+    "A simultaneous snake strategy arena with local Laya and built-in agents.",
 };
 
 export default function RootLayout({
@@ -19,8 +17,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className={cn(inter.className, "min-h-[100dvh] relative")}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={cn("font-sans min-h-[100dvh] relative")}>
         <ThemeProvider
           attribute="class"
           defaultTheme="dark"

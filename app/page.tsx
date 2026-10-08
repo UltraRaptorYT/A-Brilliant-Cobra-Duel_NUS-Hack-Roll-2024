@@ -1,105 +1,89 @@
-"use client";
-
+﻿"use client";
 import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
+import { useTheme } from "next-themes";
+import { useRouter } from "next/navigation";
+import { Clipboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { v4 as uuidv4 } from "uuid";
-import { useState, useEffect, useRef } from "react";
-import { useToast } from "@/components/ui/use-toast";
-import { useTheme } from "next-themes";
-import { Clipboard } from "lucide-react";
-import { useRouter } from "next/navigation";
-import supabase from "@/lib/supabase";
-
-const BASE_URL: string =
-  process.env.NEXT_PUBLIC_SITE_URL || window.location.hostname;
 
 export default function Home() {
   const router = useRouter();
-  const { toast } = useToast();
-  const inputRef = useRef<HTMLInputElement | null>(null);
-  const { theme } = useTheme();
-  const [logoImage, setLogoImage] = useState<string>("/ABCD-dark.png");
-  async function postUser(uuid: string) {
-    const { error } = await supabase.from("abcd_user").insert({ id: uuid });
-    if (error) {
-      return console.log(error);
-    }
-  }
-  const [inputVal, setInputVal] = useState<string>("");
-
-  useEffect(() => {
-    if (typeof window !== "undefined" && window.localStorage) {
-      if (!localStorage.getItem("user_id")) {
-        const user_id = uuidv4();
-        localStorage.setItem("user_id", user_id);
-        postUser(user_id);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    setLogoImage(theme == "dark" ? "/ABCD-dark.png" : "/ABCD-light.png");
-  }, [theme]);
-
-  async function joinGame() {
-    if (!inputRef.current) {
+  const { resolvedTheme } = useTheme();
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  function join() {
+    let room = code.trim();
+    try {
+      if (room.includes("://"))
+        room = new URL(room).pathname.split("/").filter(Boolean).pop() || "";
+    } catch {
+      setError("Enter a valid game code or invite link.");
       return;
     }
-    let gameID: string = inputRef.current.value;
-    if (gameID.trim().length == 0) {
-      toast({
-        title: "Invalid Game Code",
-        variant: "destructive",
-        duration: 1000,
-      });
+    if (
+      !/^[a-zA-Z0-9-]{1,64}$/.test(room) ||
+      room === "local" ||
+      room === "api"
+    ) {
+      setError("Enter a valid game code.");
       return;
     }
-    if (gameID.includes(process.env.NEXT_PUBLIC_SITE_URL ?? "")) {
-      gameID = gameID.replace(process.env.NEXT_PUBLIC_SITE_URL + "/" ?? "", "");
-    }
-    const { data, error } = await supabase
-      .from("abcd_game_user")
-      .select()
-      .eq("game_id", gameID);
-    if (error) {
-      return console.log(error);
-    }
-    if (data.length >= 2) {
-      toast({
-        title: "Game Room Full",
-        variant: "destructive",
-        duration: 1000,
-      });
-      return;
-    }
-    return router.push(`/${gameID}`);
+    router.push("/" + room);
   }
-
-  async function pasteText() {
-    let pasteText = await navigator.clipboard.readText();
-    setInputVal(pasteText);
-  }
-
   return (
     <main className="flex min-h-[100dvh] max-w-[300px] mx-auto min-w-[300px] flex-col items-center justify-center p-4">
-      <Image src={logoImage} alt="" width={300} height={300} priority={true} />
+      <Image
+        src={resolvedTheme === "light" ? "/ABCD-light.png" : "/ABCD-dark.png"}
+        alt="A Brilliant Cobra Duel"
+        width={300}
+        height={300}
+        priority
+      />
       <div className="flex justify-center items-center w-full flex-col gap-4">
         <div className="flex items-center">
           <Input
-            type="text"
+            aria-label="Game Code"
             placeholder="Game Code"
-            ref={inputRef}
-            value={inputVal}
-            onChange={(e) => setInputVal(e.target.value)}
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") join();
+            }}
           />
-          <Button variant={"ghost"} size={"sm"} onClick={() => pasteText()}>
+          <Button
+            aria-label="Paste game code"
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              try {
+                setCode(await navigator.clipboard.readText());
+              } catch {
+                setError("Paste the game code into the field.");
+              }
+            }}
+          >
             <Clipboard size={20} />
           </Button>
         </div>
-        <Button variant={"secondary"} onClick={joinGame}>
+        <Button variant="secondary" onClick={join}>
           Join Game
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => router.push("/" + crypto.randomUUID().slice(0, 8))}
+        >
+          Create Game
+        </Button>
+        <Link className="text-sm underline" href="/local">
+          Play locally
+        </Link>
+        {error && (
+          <p role="alert" className="text-sm text-red-500">
+            {error}
+          </p>
+        )}
       </div>
     </main>
   );

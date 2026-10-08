@@ -12,7 +12,7 @@ Every line starts also with its number which is at the same time the y coordinat
 Characters board:
 {Chars_board}
 
-and this is the board state in JSON, positions are in (x, y) format, the game board size is 15 by 15, x goes from 0 to 14 left to right and y goes 0 to 14 up to down: 
+and this is the board state in JSON, positions are in (x, y) format, the game board size is 10 by 10, x goes from 0 to 9 left to right and y goes 0 to 9 up to down: 
 {Board_state_str}
 
 Makt the following Chain of Thought in few words:
@@ -25,7 +25,7 @@ Makt the following Chain of Thought in few words:
 You are the snake1, which is the color green. Your opponent is the snake2 with color blue. This is the game board in emojis where heads are rounds, bodies are squares and food is an apple: 
 {emojis_board}
 
-and this is the board state in JSON, positions are in (x, y) format, the game board size is 15 by 15, x goes from 0 to 14 left to right and y goes 0 to 14 up to down: 
+and this is the board state in JSON, positions are in (x, y) format, the game board size is 10 by 10, x goes from 0 to 9 left to right and y goes 0 to 9 up to down: 
 {board_state_str}
 
 The snake dir parameter is the first letter of the previous chosen direction of the snake, if you chose an opposite direction you will die as you will collide with your own body.

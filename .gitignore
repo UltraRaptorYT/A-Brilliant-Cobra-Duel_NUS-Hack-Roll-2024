@@ -11,6 +11,7 @@
 
 # next.js
 /.next/
+/.next-e2e/
 /out/
 
 # production
@@ -34,3 +35,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Local inference artifacts and one-time export environment
+/.venv-export/
+/models/
+__pycache__/
+/test-results/
+/playwright-report/
+.wrangler/
+.dev.vars*

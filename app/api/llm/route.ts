@@ -1,169 +1,149 @@
+﻿import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { NextResponse } from "next/server";
-import { NextApiRequest } from "next/types";
-import { createClient } from "@supabase/supabase-js";
+import { access } from "node:fs/promises";
+import path from "node:path";
+import {
+  isBoardState,
+  legalDirections,
+  outcome,
+  SnakeId,
+} from "@/components/game/engine";
+import {
+  AgentConfig,
+  chooseBuiltin,
+  Decision,
+  decisionContext,
+  chooseGuardedLaya,
+  isConfig,
+} from "@/components/game/decisions";
+import { BoardStateType } from "@/components/game/gameTypes";
+import { formatPrompt } from "@/components/game/promptFormatting";
+import { layaChoice, modelDirectory } from "@/lib/laya";
 
-export type PosType = [number, number];
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
-export type SnakeType = {
-  body: PosType[];
-  dir: Direction;
-  prevDir: Direction;
-  dirArr: Direction[];
-  isAlive: boolean;
-};
-
-export type Direction = "U" | "D" | "L" | "R";
-
-export type BoardStateType = {
-  turn: number;
-  snake1: SnakeType;
-  snake2: SnakeType;
-  food: PosType[];
-};
-
-export type GameBoardProps = {
-  size: number;
-  board: number[][];
-  boardState: BoardStateType;
-};
-
-export type SnakeProps = {
-  dir?: Direction;
-  color: string;
-  keyProp: string;
-};
-
-export interface SnakeActionType {
-  turn: number;
-  action: string;
-  reason: string;
+export async function GET() {
+  const laya = await Promise.all(
+    [
+      "model.onnx",
+      "laya_config.json",
+      "tokenizer.json",
+      "tokenizer_config.json",
+    ].map((file) => access(path.join(modelDirectory(), file))),
+  ).then(
+    () => true,
+    () => false,
+  );
+  return NextResponse.json({
+    builtin: true,
+    laya,
+    openai: !!process.env.OPENAI_API_KEY,
+  });
 }
 
-const SUPABASE_URL: string = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const SUPABASE_API_KEY: string = process.env.NEXT_PUBLIC_SUPABASE_API_KEY || "";
-const supabase = createClient(SUPABASE_URL, SUPABASE_API_KEY);
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-async function openAISnake1(content: string) {
-  const params: OpenAI.Chat.ChatCompletionCreateParams = {
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are an expert gamer agent playing the 1vs1 snake game in a grid board.You are Snake1. You can move up, down, left or right. You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.\n\nRules:\n1.You Must always give reason for your action taken\n2.Must always format output in JSON with two keys 'action' and 'reason'Example:{'action':'U','reason':string...}\n3.Final action must be either 'U','D','L','R'",
-      },
-      { role: "user", content: `${content}` },
-    ],
-    model: "gpt-3.5-turbo-1106",
-    response_format: { type: "json_object" },
-  };
-
-  const chatCompletion: OpenAI.Chat.ChatCompletion =
-    await openai.chat.completions.create(params);
-
-  var arg1 = chatCompletion.choices[0].message.content;
-  console.dir("arg1\n", arg1);
-
-  if (!arg1) {
-    throw new Error("No arg");
-  }
-
-  // var { action, reason } = JSON.parse(arg);
-  var { action, reason } = JSON.parse(arg1);
-  return { action: action, reason: reason };
-}
-
-async function openAISnake2(content: string) {
-  const params: OpenAI.Chat.ChatCompletionCreateParams = {
-    messages: [
-      {
-        role: "system",
-        content:
-          "You are an expert gamer agent playing the 1vs1 snake game in a grid board.You are Snake2. You can move up, down, left or right. You can eat food to grow. If you hit a wall or another snake, you die. The game ends when one of the snakes dies. You are compiting against another snake.\n\nRules:\n1.You Must always give reason for your action taken\n2.Must always format output in JSON with two keys 'action' and 'reason'Example:{'action':'U','reason':string...}\n3.Final action must be either 'U','D','L','R'",
-      },
-      { role: "user", content: `${content}` },
-    ],
-    model: "gpt-3.5-turbo-1106",
-    response_format: { type: "json_object" },
-  };
-  const chatCompletion: OpenAI.Chat.ChatCompletion =
-    await openai.chat.completions.create(params);
-
-  var arg1 = chatCompletion.choices[0].message.content;
-  console.dir("arg1\n", arg1);
-
-  if (!arg1) {
-    throw new Error("No arg");
-  }
-
-  // var { action, reason } = JSON.parse(arg);
-  var { action, reason } = JSON.parse(arg1);
-  return { action: action, reason: reason };
-}
-
-interface turnData {
-  turn_id: number;
-  round_id: number;
-  game_id: string;
-  snake1action: string;
-  snake1reason: string;
-  snake2action: string;
-  snake2reason: string;
-  boardState: string;
-}
-
-//
-async function postTurnData(turnData: turnData) {
-  // Unpack the turnData
-
-  const { data, error } = await supabase.from("abcd_turn").insert(turnData);
-
-  if (error) {
-    console.log(error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
+async function decide(
+  state: BoardStateType,
+  id: SnakeId,
+  config: AgentConfig,
+): Promise<Decision> {
+  const fallback = chooseBuiltin(state, id, config);
+  if (config.provider === "builtin") return fallback;
+  const context = decisionContext(state, id, config);
+  const options = legalDirections(state[id]);
+  try {
+    if (config.provider === "laya") {
+      return await chooseGuardedLaya(state, id, config, layaChoice);
+    }
+    if (!process.env.OPENAI_API_KEY) throw new Error("Missing key");
+    const client = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      timeout: 15000,
+      maxRetries: 0,
+    });
+    const response = await client.chat.completions.create({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      max_tokens: 180,
+      messages: [
+        {
+          role: "system",
+          content: `You control ${id} in simultaneous snake on a 10 by 10 board. Pick one legal direction from ${options.join(",")}. Return JSON {"action":"U","reason":"brief move summary"}. Use the supplied candidate metrics and player preference. Never reverse. Head-on collisions kill both snakes. There is no turn limit; when the board fills, the longer snake wins.`,
+        },
+        {
+          role: "user",
+          content: JSON.stringify({
+            ...context,
+            preference: formatPrompt(config.prompt, state),
+          }),
+        },
+      ],
+    });
+    const result = JSON.parse(response.choices[0]?.message.content || "{}");
+    if (!options.includes(result.action) || typeof result.reason !== "string")
+      throw new Error("Invalid choice");
+    return {
+      action: result.action,
+      reason: result.reason.slice(0, 400),
+      provider: "openai",
+    };
+  } catch (error) {
+    console.warn(
+      `${config.provider} unavailable:`,
+      error instanceof Error ? error.message : "provider error",
     );
+    return {
+      ...fallback,
+      fallback: true,
+      reason: `${config.provider === "laya" ? "Laya" : "GPT"} unavailable or returned an invalid move; built-in fallback. ${fallback.reason}`,
+    };
   }
-
-  return NextResponse.json(data);
 }
 
+// Bound expensive inference per server process; never queue unbounded model work.
+let busy = false;
 export async function POST(req: Request) {
-  console.log("REQ BODY", req.body);
-
-  var { snake1prompt, snake2prompt, game_id, round_id, turn, boardState } =
-    await req.json();
-
-  const promiseResults = Promise.all([
-    openAISnake1(snake1prompt),
-    openAISnake2(snake2prompt),
-  ]);
-  const [res1, res2] = await promiseResults;
-
-  // Unpack the action and reason
-  var { action: action1, reason: reason1 } = res1;
-  var { action: action2, reason: reason2 } = res2;
-
-  // Insert to database
-  var turnData: turnData = {
-    turn_id: turn,
-    round_id: round_id,
-    game_id: game_id,
-    snake1action: action1,
-    snake1reason: reason1,
-    snake2action: action2,
-    snake2reason: reason2,
-    boardState: boardState,
-  };
-
-  console.log(turnData, "TURN DATA");
-  console.log("boardState", typeof boardState);
-  await postTurnData(turnData);
-
-  return NextResponse.json({ action1, reason1, action2, reason2 });
+  if (Number(req.headers.get("content-length")) > 32768)
+    return NextResponse.json({ error: "Request too large." }, { status: 413 });
+  let data;
+  try {
+    const text = await req.text();
+    if (text.length > 32768)
+      return NextResponse.json(
+        { error: "Request too large." },
+        { status: 413 },
+      );
+    data = JSON.parse(text);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON." }, { status: 400 });
+  }
+  if (
+    !isBoardState(data?.boardState) ||
+    !isConfig(data?.player1) ||
+    !isConfig(data?.player2)
+  )
+    return NextResponse.json(
+      { error: "Invalid board or agent configuration." },
+      { status: 400 },
+    );
+  if (outcome(data.boardState))
+    return NextResponse.json(
+      { error: "This round has ended." },
+      { status: 409 },
+    );
+  if (busy)
+    return NextResponse.json(
+      { error: "Inference is busy. Try again shortly." },
+      { status: 429 },
+    );
+  busy = true;
+  try {
+    const [player1, player2] = await Promise.all([
+      decide(data.boardState, "snake1", data.player1),
+      decide(data.boardState, "snake2", data.player2),
+    ]);
+    return NextResponse.json({ turn: data.boardState.turn, player1, player2 });
+  } finally {
+    busy = false;
+  }
 }
